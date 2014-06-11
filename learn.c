@@ -689,3 +689,83 @@ varnam_is_known_word(varnam* handle, const char* word)
     else
         return 0;
 }
+
+int
+varnam_get_stem(varnam* handle, const char* old_ending, const char *new_ending)
+{
+    sqlite3 *db;
+    sqlite3_stmt *stmt;
+    int rc;
+
+    db = handle->internal->db;
+
+    char *sql="select new_ending from stemrules where old_ending = ?1"; 
+
+    rc = sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
+
+    if(rc != SQLITE_OK)
+    {
+        set_last_error(handle, "Failed to initialize statement : %s", sqlite3_errmsg(db));
+        sqlite3_finalize( stmt );
+        return VARNAM_ERROR;
+    }
+
+    sqlite3_bind_text(stmt, 1, old_ending, -1, NULL);
+
+    rc = sqlite3_step(stmt);
+
+    if(rc == SQLITE_ROW)
+    {
+        strcpy(new_ending,(char*)sqlite3_column_blob(stmt,0));
+        return VARNAM_STEMRULE_HIT;
+    }
+    else if(rc == SQLITE_DONE)
+        return VARNAM_STEMRULE_MISS;
+    else
+    {
+        set_last_error(handle, "could not stem word. Unexpected error");
+        return VARNAM_ERROR;
+    }
+
+}
+
+
+int
+varnam_stem(varnam *handle, char *word)
+{
+	int rc;
+	strbuf *word_buf;
+    char *ending,*new_ending;
+    char *p;
+
+    word_buf = strbuf_init(strlen(word));
+    strbuf_add(word_buf, word);
+    new_ending = strbuf_init(15);
+    ending = strbuf_get_ending(word_buf);
+
+    if(ending == NULL)
+    {
+    	set_last_error(handle,"Couldn't obtain ending for given word");
+        return VARNAM_ERROR;
+    }
+
+    rc = varnam_get_stem(handle, ending, strbuf_to_s(new_ending));
+
+    if(rc == VARNAM_STEMRULE_HIT)
+    {
+    	strbuf_remove_from_last(word_buf, ending);
+    	strbuf_add(word_buf,strbuf_to_s(new_ending));
+    	strcpy(word, word_buf->buffer);
+    }
+
+    xfree(word_buf);
+    xfree(new_ending);
+
+    if(rc == VARNAM_STEMRULE_HIT || rc == VARNAM_STEMRULE_MISS)
+        return VARNAM_SUCCESS;
+
+    else
+        return VARNAM_ERROR;
+
+    
+}

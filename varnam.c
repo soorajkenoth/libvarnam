@@ -671,6 +671,18 @@ varnam_flush_buffer(varnam *handle)
     return vst_flush_changes(handle);
 }
 
+int varnam_create_stemrule(varnam* handle, const char* old_ending, const char* new_ending, int level)
+{
+	int rc;
+
+    rc = vst_persist_stemrule(handle, old_ending, new_ending, level);
+    
+    if(rc != VARNAM_SUCCESS)
+    	return VARNAM_ERROR;
+
+    return VARNAM_SUCCESS;
+}
+
 static int
 enable_suggestions(varnam *handle, const char *file)
 {

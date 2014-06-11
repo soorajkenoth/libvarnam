@@ -22,14 +22,16 @@ ensure_schema_exists(varnam *handle, char **msg)
     const char *sql =
         "pragma page_size=4096;"
         "create table if not exists metadata (key TEXT UNIQUE, value TEXT);"
-        "create table if not exists symbols (id INTEGER PRIMARY KEY AUTOINCREMENT, type INTEGER, pattern TEXT, value1 TEXT, value2 TEXT, value3 TEXT, tag TEXT, match_type INTEGER, priority INTEGER DEFAULT 0, accept_condition INTEGER, flags INTEGER DEFAULT 0);";
+        "create table if not exists symbols (id INTEGER PRIMARY KEY AUTOINCREMENT, type INTEGER, pattern TEXT, value1 TEXT, value2 TEXT, value3 TEXT, tag TEXT, match_type INTEGER, priority INTEGER DEFAULT 0, accept_condition INTEGER, flags INTEGER DEFAULT 0);"
+        "create table if not exists stemrules (id INTEGER PRIMARY KEY AUTOINCREMENT, old_ending TEXT, new_ending TEXT, level INTEGER);";
 
     const char *indexes =
         "create index if not exists index_metadata on metadata (key);"
         "create index if not exists index_pattern on symbols (pattern);"
         "create index if not exists index_value1 on symbols (value1);"
         "create index if not exists index_value2 on symbols (value2);"
-        "create index if not exists index_value3 on symbols (value3);";
+        "create index if not exists index_value3 on symbols (value3);"
+        "create index if not exists index_stemmer on stemrules (old_ending);";
 
     char *zErrMsg = 0;
     int rc;
@@ -321,6 +323,39 @@ vst_persist_token(
 
     return VARNAM_SUCCESS;
 }
+
+int vst_persist_stemrule(varnam *handle, const char* old_ending, const char* new_ending, int level)
+{
+    sqlite3 *db;
+    sqlite3_stmt *stmt;
+    int rc;
+    char *sql = "insert into stemrules (old_ending,new_ending,level) values (?1, ?2, ?3);";
+
+    db = handle->internal->db;
+
+    rc = sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
+
+    if(rc != SQLITE_OK)
+    {
+        set_last_error(handle, "Failed to initialize statement : %s", sqlite3_errmsg(db));
+        sqlite3_finalize( stmt );
+        return VARNAM_ERROR;
+    }
+
+    sqlite3_bind_text(stmt, 1, old_ending, -1, NULL);
+    sqlite3_bind_text(stmt, 2, new_ending, -1, NULL);
+    sqlite3_bind_int(stmt, 3, level);
+
+    rc = sqlite3_step(stmt);
+
+    if(rc != SQLITE_DONE)
+    {
+        set_last_error (handle, "Failed to persist stemrule : %s", sqlite3_errmsg(db));
+        sqlite3_finalize( stmt );
+        return VARNAM_ERROR;
+    }
+    return VARNAM_SUCCESS;
+}   
 
 int
 vst_flush_changes(varnam *handle)

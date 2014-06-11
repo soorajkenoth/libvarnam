@@ -177,6 +177,26 @@ int strbuf_addvf(struct strbuf *string, const char *format, va_list args)
 
 }
 
+/*
+    Returns the last unicode character of the word
+*/
+char*
+strbuf_get_ending(strbuf *word)
+{
+    varray *characters;
+    characters = strbuf_chars(word);
+
+    if(characters->index == -1)
+        return NULL;
+    else
+        return (char*)characters->memory[characters->index];
+}
+
+/*
+    decreases the index of the word by 
+    the length of its ending
+*/
+
 void strbuf_destroy(void *s)
 {
     strbuf *string;
