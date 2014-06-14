@@ -690,6 +690,7 @@ varnam_is_known_word(varnam* handle, const char* word)
         return 0;
 }
 
+/*Gets the stemrule for a particular ending from the database*/
 int
 varnam_get_stem(varnam* handle, const char* old_ending, const char *new_ending)
 {
@@ -730,6 +731,7 @@ varnam_get_stem(varnam* handle, const char* old_ending, const char *new_ending)
 }
 
 
+/*Stems the supplied word*/
 int
 varnam_stem(varnam *handle, char *word)
 {
@@ -737,6 +739,13 @@ varnam_stem(varnam *handle, char *word)
 	strbuf *word_buf;
     char *ending,*new_ending;
     char *p;
+
+
+    if(word == NULL)
+    {
+        set_last_error(handle, "Cannot stem empty word");
+        return VARNAM_ERROR;
+    }
 
     word_buf = strbuf_init(strlen(word));
     strbuf_add(word_buf, word);
@@ -766,6 +775,4 @@ varnam_stem(varnam *handle, char *word)
 
     else
         return VARNAM_ERROR;
-
-    
 }

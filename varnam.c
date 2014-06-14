@@ -675,6 +675,18 @@ int varnam_create_stemrule(varnam* handle, const char* old_ending, const char* n
 {
 	int rc;
 
+    if(old_ending == NULL || strlen(old_ending) == 0)
+    {
+        set_last_error(handle, "No ending supplied");
+        return VARNAM_ERROR;
+    }
+
+    if(level < 1 || level > 3)
+    {
+        set_last_error(handle, "Invalid level");
+        return VARNAM_ERROR;
+    }
+
     rc = vst_persist_stemrule(handle, old_ending, new_ending, level);
     
     if(rc != VARNAM_SUCCESS)

@@ -178,7 +178,30 @@ int strbuf_addvf(struct strbuf *string, const char *format, va_list args)
 }
 
 /*
-    Returns the last unicode character of the word
+ * Gets each unicode character in this string
+ * returned result should be destroyed
+ * */
+varray*
+strbuf_chars(strbuf *b)
+{
+  const unsigned char *ustring; const char *inputcopy;
+  int bytes_read;
+  varray *chars;
+  strbuf *tmp;
+
+  inputcopy = b->buffer;
+  chars = varray_init();
+  while (*inputcopy != '\0') {
+    READ_A_UTF8_CHAR (ustring, inputcopy, bytes_read);
+    tmp = strbuf_init(8);
+    strbuf_add_bytes (tmp, inputcopy - bytes_read, bytes_read);
+    varray_push (chars, strbuf_detach(tmp));
+    bytes_read = 0;
+  }
+  return chars;
+}
+
+ /*   Returns the last unicode character of the word
 */
 char*
 strbuf_get_ending(strbuf *word)
@@ -191,11 +214,6 @@ strbuf_get_ending(strbuf *word)
     else
         return (char*)characters->memory[characters->index];
 }
-
-/*
-    decreases the index of the word by 
-    the length of its ending
-*/
 
 void strbuf_destroy(void *s)
 {

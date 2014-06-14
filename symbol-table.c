@@ -324,6 +324,8 @@ vst_persist_token(
     return VARNAM_SUCCESS;
 }
 
+/*Stores a stem rule into the database*/
+
 int vst_persist_stemrule(varnam *handle, const char* old_ending, const char* new_ending, int level)
 {
     sqlite3 *db;
