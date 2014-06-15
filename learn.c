@@ -736,7 +736,7 @@ int
 varnam_stem(varnam *handle, char *word)
 {
 	int rc;
-	strbuf *word_buf;
+	strbuf *word_buf, *end_buffer, *temp;
     char *ending,*new_ending;
     char *p;
 
@@ -748,23 +748,38 @@ varnam_stem(varnam *handle, char *word)
     }
 
     word_buf = strbuf_init(strlen(word));
+    end_buffer = strbuf_init(strlen(word));
     strbuf_add(word_buf, word);
+    temp = strbuf_init(strlen(word));
     new_ending = strbuf_init(15);
-    ending = strbuf_get_ending(word_buf);
+    
 
-    if(ending == NULL)
+    while(1)
     {
-    	set_last_error(handle,"Couldn't obtain ending for given word");
-        return VARNAM_ERROR;
-    }
+        strbuf_clear(temp);
+        ending = strbuf_get_ending(word_buf);
+        strbuf_add(temp, ending);
+        strbuf_add(temp, strbuf_to_s(end_buffer));
+        strbuf_clear(end_buffer);
 
-    rc = varnam_get_stem(handle, ending, strbuf_to_s(new_ending));
+        strbuf_add(end_buffer, strbuf_to_s(temp));
 
-    if(rc == VARNAM_STEMRULE_HIT)
-    {
-    	strbuf_remove_from_last(word_buf, ending);
-    	strbuf_add(word_buf,strbuf_to_s(new_ending));
-    	strcpy(word, word_buf->buffer);
+        if(ending == NULL)
+        {
+        	set_last_error(handle,"Couldn't obtain ending for given word");
+            return VARNAM_ERROR;
+        }
+
+        strbuf_remove_from_last(word_buf, ending);
+        rc = varnam_get_stem(handle, strbuf_to_s(end_buffer), strbuf_to_s(new_ending));
+
+        if(rc == VARNAM_STEMRULE_HIT)
+        {
+    	   strbuf_add(word_buf,strbuf_to_s(new_ending));
+           strbuf_clean(word_buf);
+    	   strcpy(word, word_buf->buffer);
+           break;
+        }
     }
 
     xfree(word_buf);

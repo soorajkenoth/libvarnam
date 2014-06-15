@@ -341,6 +341,19 @@ char* strbuf_detach(struct strbuf *string)
     return buffer;
 }
 
+/*sets characters after '\0' to blank so that ruby print them
+ *ruby converts '\0' of c strings into unicode when printing
+ *and thus prints garbage along with the desired word.
+ *call this function on the strbuf you want to puts using varnamc*/
+
+void strbuf_clean(struct strbuf *string)
+{
+    int i;
+
+    for(i=string->length;i<string->allocated;i++)
+        string->buffer[i] = ' ';
+}
+
 const char* strbuf_to_s(struct strbuf *string)
 {
     return string->buffer;
