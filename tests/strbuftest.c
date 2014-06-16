@@ -152,6 +152,43 @@ START_TEST (get_each_character_should_be_unicode_aware)
 }
 END_TEST
 
+START_TEST (get_ending)
+{
+  char *ending;
+  strbuf *word = strbuf_init (20);
+  strbuf_add(word, "മലയാളം");
+
+  ending = strbuf_get_ending(word);
+  ck_assert_str_eq("ം", ending);
+  strbuf_remove_from_last(word, ending);
+
+  ending = strbuf_get_ending(word);
+  ck_assert_str_eq(ending, "ള");
+  strbuf_remove_from_last(word, ending);
+
+  ending = strbuf_get_ending(word);
+  ck_assert_str_eq(ending, "ാ");
+  strbuf_remove_from_last(word, ending);
+
+  ending = strbuf_get_ending(word);
+  ck_assert_str_eq(ending, "യ");
+  strbuf_remove_from_last(word, ending);
+
+  ending = strbuf_get_ending(word);
+  ck_assert_str_eq(ending, "ല");
+  strbuf_remove_from_last(word, ending);
+
+  ending = strbuf_get_ending(word);
+  ck_assert_str_eq(ending, "മ");
+  strbuf_remove_from_last(word, ending);
+
+  ending = strbuf_get_ending(word);
+
+  if(ending != NULL)
+    ck_abort_msg("NULL expected. Ending is non-null");
+}
+END_TEST
+
 TCase* get_strbuf_tests()
 {
     TCase* tcase = tcase_create("strbuf");
@@ -165,5 +202,6 @@ TCase* get_strbuf_tests()
     tcase_add_test (tcase, addfln_should_add_newline);
     tcase_add_test (tcase, get_each_character);
     tcase_add_test (tcase, get_each_character_should_be_unicode_aware);
+    tcase_add_test (tcase, get_ending);
     return tcase;
 }

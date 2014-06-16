@@ -350,7 +350,8 @@ void strbuf_clean(struct strbuf *string)
 {
     int i;
 
-    for(i=string->length;i<string->allocated;i++)
+    string->buffer[string->length] = '\0';
+    for(i=string->length+1;i<string->allocated;i++)
         string->buffer[i] = ' ';
 }
 
