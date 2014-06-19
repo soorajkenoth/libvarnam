@@ -1332,8 +1332,16 @@ def export_words
 end
 
 def level1(options={},hash)
-  _ensure_sanity(hash)
+  #_ensure_sanity(hash)
   _create_stemrule(hash, 1, options) 
+end
+
+def level2(options={},hash)
+	_create_stemrule(hash, 2, options)
+end
+
+def level3(options={}, hash)
+	_create_stemrule(hash, 3, options)
 end
 
 def stem

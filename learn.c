@@ -690,9 +690,53 @@ varnam_is_known_word(varnam* handle, const char* word)
         return 0;
 }
 
+bool is_swara(const char *ending)
+{
+    if (strcmp(ending, "ാ") == 0)
+        return true;
+    else if (strcmp(ending, "ു") == 0)
+        return true;
+    else if (strcmp(ending, "ം") == 0)
+        return true;
+    else if (strcmp(ending, "്") == 0)
+        return true;
+    else if (strcmp(ending, "െ") == 0)
+        return true;
+    else if (strcmp(ending, "േ") == 0)
+        return true;
+    else if (strcmp(ending, "ോ") == 0)
+        return true;
+    else if (strcmp(ending, "ി") == 0)
+        return true;
+    else if (strcmp(ending, "ൊ") == 0)
+        return true;
+    else if (strcmp(ending, "ീ") == 0)
+        return true;
+    else 
+        return false;
+}
+
+bool stemmer_terminate_condition(strbuf *word_buffer, strbuf *end_buffer)
+{
+    char *ending;
+
+    ending = strbuf_get_ending (word_buffer);
+
+    if(ending == NULL)
+        return true;
+   /* if (!is_swara(ending))
+        return true;*/
+    if (word_buffer->length < VARNAM_STEM_MIN_SIZE)
+        return true;
+    if (strcmp(strbuf_to_s(word_buffer), strbuf_to_s(end_buffer)) == 0)
+        return true;
+
+    return false;
+}
+
 /*Gets the stemrule for a particular ending from the database*/
 int
-varnam_get_stem(varnam* handle, const char* old_ending, const char *new_ending)
+varnam_get_stem(varnam* handle, const char* old_ending, const char *new_ending, int level)
 {
     sqlite3 *db;
     sqlite3_stmt *stmt;
@@ -700,7 +744,7 @@ varnam_get_stem(varnam* handle, const char* old_ending, const char *new_ending)
 
     db = handle->internal->db;
 
-    char *sql="select new_ending from stemrules where old_ending = ?1"; 
+    char *sql="select new_ending from stemrules where old_ending = ?1 and level = ?2"; 
 
     rc = sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
 
@@ -712,12 +756,17 @@ varnam_get_stem(varnam* handle, const char* old_ending, const char *new_ending)
     }
 
     sqlite3_bind_text(stmt, 1, old_ending, -1, NULL);
+    sqlite3_bind_int(stmt, 2, level);
 
     rc = sqlite3_step(stmt);
 
     if(rc == SQLITE_ROW)
     {
-        strcpy(new_ending,(char*)sqlite3_column_blob(stmt,0));
+        if(sqlite3_column_bytes(stmt,0) != 0)
+            strcpy(new_ending,(char*)sqlite3_column_blob(stmt,0));
+        else
+            strcpy(new_ending,"");
+        
         return VARNAM_STEMRULE_HIT;
     }
     else if(rc == SQLITE_DONE)
@@ -730,64 +779,109 @@ varnam_get_stem(varnam* handle, const char* old_ending, const char *new_ending)
 
 }
 
+int varnam_apply_stem(varnam *handle, strbuf *word_buffer, const char *old_ending, const char *new_ending)
+{
+    bool status;
+
+    if(!strbuf_add (word_buffer, new_ending))
+    {
+        set_last_error (handle, "Could not add new_ending to word buffer");
+        return VARNAM_ERROR;
+    }
+}
+
 
 /*Stems the supplied word*/
 int
 varnam_stem(varnam *handle, char *word)
 {
 	int rc;
-	strbuf *word_buf, *end_buffer, *temp;
+	strbuf *word_buffer, *end_buffer, *temp;
     char *ending,*new_ending;
-    char *p;
 
 
     if(word == NULL)
     {
-        set_last_error(handle, "Cannot stem empty word");
+        set_last_error (handle, "Cannot stem empty word");
         return VARNAM_ERROR;
     }
 
-    word_buf = strbuf_init(strlen(word));
-    end_buffer = strbuf_init(strlen(word));
-    strbuf_add(word_buf, word);
-    temp = strbuf_init(strlen(word));
-    new_ending = strbuf_init(15);
+    word_buffer = strbuf_init (strlen(word));
+    end_buffer = strbuf_init (strlen(word));
     
+    strbuf_add(word_buffer, word);
+    
+    temp = strbuf_init (strlen(word));
+    new_ending = strbuf_init (strlen(word));
+    
+    if (word_buffer->length < VARNAM_STEM_MIN_SIZE)
+        return VARNAM_SUCCESS;
 
-    while(1)
+    while(!stemmer_terminate_condition(word_buffer, end_buffer))
     {
-        strbuf_clear(temp);
-        ending = strbuf_get_ending(word_buf);
-        strbuf_add(temp, ending);
-        strbuf_add(temp, strbuf_to_s(end_buffer));
-        strbuf_clear(end_buffer);
-
-        strbuf_add(end_buffer, strbuf_to_s(temp));
-
-        if(ending == NULL)
+        strbuf_clear (temp);
+        ending = strbuf_get_ending (word_buffer);
+        strbuf_remove_from_last (word_buffer, ending);
+        
+        if (ending == NULL)
         {
-        	set_last_error(handle,"Couldn't obtain ending for given word");
+            set_last_error (handle, "Can't obtain ending of the word");
             return VARNAM_ERROR;
         }
 
-        strbuf_remove_from_last(word_buf, ending);
-        rc = varnam_get_stem(handle, strbuf_to_s(end_buffer), strbuf_to_s(new_ending));
-
-        if(rc == VARNAM_STEMRULE_HIT)
+        strbuf_add (temp, ending);
+        strbuf_add (temp, strbuf_to_s (end_buffer));
+        strbuf_clear (end_buffer);
+        strbuf_add (end_buffer, strbuf_to_s (temp));
+        
+        /*Checking if end_buffer is in level1*/
+        rc = varnam_get_stem (handle, strbuf_to_s(end_buffer), strbuf_to_s(new_ending), 1);
+        if (rc == VARNAM_STEMRULE_HIT)
         {
-    	   strbuf_add(word_buf,strbuf_to_s(new_ending));
-           strbuf_clean(word_buf);
-    	   strcpy(word, word_buf->buffer);
-           break;
+            /*Add code to learn if exists independently*/
+            varnam_apply_stem (handle, word_buffer, strbuf_to_s(end_buffer), strbuf_to_s(new_ending));
+            strcpy(word, strbuf_to_s(word_buffer));
+            strbuf_clear (end_buffer);
+            continue;
+        }
+        else if (rc != VARNAM_STEMRULE_MISS)
+        {
+            set_last_error (handle, "Error in retreiving the stem");
+            return VARNAM_ERROR;
+        }
+
+        
+        /*Checking for level2 stemrule*/
+        rc = varnam_get_stem (handle, strbuf_to_s(end_buffer), strbuf_to_s(new_ending), 2); 
+        if (rc == VARNAM_STEMRULE_HIT)
+        {
+            varnam_apply_stem (handle, word_buffer, strbuf_to_s(end_buffer), strbuf_to_s(new_ending));
+            strcpy(word, strbuf_to_s(word_buffer));
+            strbuf_clear (end_buffer);
+            continue;
+        }
+        else if (rc != VARNAM_STEMRULE_MISS)
+        {
+            set_last_error (handle, "Error in retreiving the stem");
+            return VARNAM_ERROR;
+        }
+
+        
+        /*checking for level3*/
+        rc = varnam_get_stem (handle, strbuf_to_s(end_buffer), strbuf_to_s(new_ending), 3);
+        if (rc == VARNAM_STEMRULE_HIT)
+        {
+            varnam_apply_stem (handle, word_buffer, strbuf_to_s(end_buffer), strbuf_to_s(new_ending));
+            strcpy(word, strbuf_to_s(word_buffer));
+            strbuf_clear (end_buffer);
+            continue;
+        }
+        else if (rc != VARNAM_STEMRULE_MISS)
+        {
+            set_last_error (handle, "Error in retreiving the stem");
+            return VARNAM_ERROR;
         }
     }
 
-    xfree(word_buf);
-    xfree(new_ending);
-
-    if(rc == VARNAM_STEMRULE_HIT || rc == VARNAM_STEMRULE_MISS)
-        return VARNAM_SUCCESS;
-
-    else
-        return VARNAM_ERROR;
+    printf ("%s\n", word);
 }

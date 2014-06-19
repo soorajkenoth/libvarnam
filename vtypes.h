@@ -83,6 +83,7 @@
 #define VARNAM_SCHEMA_SYMBOLS_VERSION 20140115
 #define VARNAM_SCHEMA_WORDS_VERSION 20140115 
 
+#define VARNAM_STEM_MIN_SIZE 3
 struct varnam_rule;
 struct varnam_token_rendering;
 struct strbuf;
