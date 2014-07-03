@@ -485,7 +485,7 @@ int extern varnam_create_stemrule(varnam *handle,
       int level);
 
 int
-varnam_stem(varnam *handle, char *word);
+varnam_stem(varnam *handle, char *word, bool learn);
 
 VARNAM_EXPORT extern void
 varnam_destroy(varnam *handle);

@@ -51,11 +51,11 @@ START_TEST (stem_word)
 	rc = varnam_create_stemrule(varnam_instance, "ക", "ല", 1);
 	assert_success(rc);
 
-	rc = varnam_stem(varnam_instance, word);
+	rc = varnam_stem(varnam_instance, word, false);
 	assert_success(rc);
 	ck_assert_str_eq(word, "പലല");
 
-	rc = varnam_stem(varnam_instance, empty_word);
+	rc = varnam_stem(varnam_instance, empty_word, false);
 	assert_error(rc);
 }
 END_TEST

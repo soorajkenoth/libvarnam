@@ -409,6 +409,13 @@ varnam_learn(varnam *handle, const char *word)
         return rc;
     }
 
+    rc = varnam_stem(handle, word, true);
+    if(rc != VARNAM_SUCCESS)
+    {
+        vwt_discard_changes (handle);
+        return rc;
+    }
+
     rc = vwt_end_changes (handle);
     if (rc != VARNAM_SUCCESS)
         return rc;
@@ -793,7 +800,7 @@ int varnam_apply_stem(varnam *handle, strbuf *word_buffer, const char *old_endin
 
 /*Stems the supplied word*/
 int
-varnam_stem(varnam *handle, char *word)
+varnam_stem(varnam *handle, char *word, bool learn)
 {
 	int rc;
 	strbuf *word_buffer, *end_buffer, *temp;
@@ -822,6 +829,7 @@ varnam_stem(varnam *handle, char *word)
         strbuf_clear (temp);
         ending = strbuf_get_ending (word_buffer);
         strbuf_remove_from_last (word_buffer, ending);
+        bool new_word = true;
         
         if (ending == NULL)
         {
@@ -840,8 +848,10 @@ varnam_stem(varnam *handle, char *word)
         {
             /*Add code to learn if exists independently*/
             varnam_apply_stem (handle, word_buffer, strbuf_to_s(end_buffer), strbuf_to_s(new_ending));
-            strcpy(word, strbuf_to_s(word_buffer));
+            strcpy (word, strbuf_to_s(word_buffer));
             strbuf_clear (end_buffer);
+            if (learn)
+                vwt_persist_word (handle, word, 1);
             continue;
         }
         else if (rc != VARNAM_STEMRULE_MISS)
@@ -858,6 +868,8 @@ varnam_stem(varnam *handle, char *word)
             varnam_apply_stem (handle, word_buffer, strbuf_to_s(end_buffer), strbuf_to_s(new_ending));
             strcpy(word, strbuf_to_s(word_buffer));
             strbuf_clear (end_buffer);
+            if (learn)
+                vwt_persist_word (handle, word, 1);
             continue;
         }
         else if (rc != VARNAM_STEMRULE_MISS)
@@ -874,6 +886,8 @@ varnam_stem(varnam *handle, char *word)
             varnam_apply_stem (handle, word_buffer, strbuf_to_s(end_buffer), strbuf_to_s(new_ending));
             strcpy(word, strbuf_to_s(word_buffer));
             strbuf_clear (end_buffer);
+            if (learn)
+                vwt_persist_word (handle, word, 1);
             continue;
         }
         else if (rc != VARNAM_STEMRULE_MISS)
@@ -884,4 +898,6 @@ varnam_stem(varnam *handle, char *word)
     }
 
     printf ("%s\n", word);
+
+    return VARNAM_SUCCESS;  
 }

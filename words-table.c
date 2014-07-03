@@ -520,6 +520,18 @@ vwt_persist_possibilities(varnam *handle, varray *tokens, const char *word, int 
     return VARNAM_SUCCESS;
 }
 
+vwt_persist_word (varnam *handle, const char *word, int confidence)
+{
+    int rc;
+    bool new_word;
+
+    rc = learn_word(handle, word, confidence, &new_word);
+
+    if(rc) return rc;
+
+    return VARNAM_SUCCESS;
+}
+
 int
 vwt_get_best_match (varnam *handle, const char *input, varray *words)
 {

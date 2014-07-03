@@ -61,6 +61,9 @@ int
 vwt_persist_pattern(varnam *handle, const char *pattern, sqlite3_int64 word_id, bool is_prefix);
 
 int
+vwt_persist_word (varnam *handle, const char *word, int confidence);
+
+int
 vwt_delete_word(varnam *handle, const char *word);
 
 int
