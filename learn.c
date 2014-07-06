@@ -790,13 +790,66 @@ int varnam_apply_stem(varnam *handle, strbuf *word_buffer, const char *old_endin
 {
     bool status;
 
+    if(vst_syllables_count(handle, word_buffer) < 2)
+        return VARNAM_ERROR;
     if(!strbuf_add (word_buffer, new_ending))
     {
         set_last_error (handle, "Could not add new_ending to word buffer");
         return VARNAM_ERROR;
     }
+    
+    return VARNAM_SUCCESS;
 }
 
+int varnam_check_exception(varnam *handle, strbuf *word_buffer, strbuf *end_buffer)
+{
+    sqlite3 *db;
+    sqlite3_stmt *stmt;
+    strbuf *syllable = strbuf_init(20);
+    int rc;
+    char *sql = "select exception from stem_exceptions where stem = ?1";
+
+    db = handle->internal->db;
+    
+    rc = sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);  
+    if(rc != SQLITE_OK)
+    {
+        set_last_error(handle, "Failed to initialize statement : %s", sqlite3_errmsg(db));
+        sqlite3_finalize( stmt );
+        return VARNAM_ERROR;
+    }
+
+    rc = sqlite3_bind_text(stmt, 1, strbuf_to_s(end_buffer), -1, NULL);
+    if(rc != SQLITE_OK)
+    {
+        set_last_error(handle, "Failed to initialize statement : %s", sqlite3_errmsg(db));
+        sqlite3_finalize( stmt );
+        return VARNAM_ERROR;
+    }
+
+    rc = vst_get_last_syllable(handle, word_buffer, syllable);
+    if(rc != VARNAM_SUCCESS)
+    {
+        set_last_error(handle, "Could not obtain last syllable");
+        return VARNAM_ERROR;
+    }
+    
+    rc = sqlite3_step(stmt);
+    if(rc == SQLITE_ROW)
+    {
+        if(sqlite3_column_bytes(stmt,0) != 0)
+        {
+            if(strcmp(strbuf_to_s(syllable), (char*)sqlite3_column_blob(stmt, 0)) == 0)
+                return VARNAM_STEMRULE_HIT;
+            else
+                return VARNAM_STEMRULE_MISS;
+        }
+    }
+    else if(rc == SQLITE_DONE)
+        return VARNAM_SUCCESS;
+
+    return VARNAM_ERROR;
+}
 
 /*Stems the supplied word*/
 int
@@ -817,7 +870,13 @@ varnam_stem(varnam *handle, char *word, bool learn)
     end_buffer = strbuf_init (strlen(word));
     
     strbuf_add(word_buffer, word);
-    
+
+    if(vst_syllables_count(handle, word_buffer) < 3)
+    {
+    	printf("%s\n", word);
+    	return VARNAM_SUCCESS;
+    }
+
     temp = strbuf_init (strlen(word));
     new_ending = strbuf_init (strlen(word));
     
@@ -847,7 +906,12 @@ varnam_stem(varnam *handle, char *word, bool learn)
         if (rc == VARNAM_STEMRULE_HIT)
         {
             /*Add code to learn if exists independently*/
-            varnam_apply_stem (handle, word_buffer, strbuf_to_s(end_buffer), strbuf_to_s(new_ending));
+            rc = varnam_check_exception(handle, word_buffer, end_buffer);
+            if(rc == VARNAM_STEMRULE_HIT)
+                continue;
+            rc = varnam_apply_stem (handle, word_buffer, strbuf_to_s(end_buffer), strbuf_to_s(new_ending));
+            if(rc != VARNAM_SUCCESS)
+                continue;
             strcpy (word, strbuf_to_s(word_buffer));
             strbuf_clear (end_buffer);
             if (learn)
@@ -865,7 +929,12 @@ varnam_stem(varnam *handle, char *word, bool learn)
         rc = varnam_get_stem (handle, strbuf_to_s(end_buffer), strbuf_to_s(new_ending), 2); 
         if (rc == VARNAM_STEMRULE_HIT)
         {
-            varnam_apply_stem (handle, word_buffer, strbuf_to_s(end_buffer), strbuf_to_s(new_ending));
+            rc = varnam_check_exception(handle, word_buffer, end_buffer);
+            if(rc == VARNAM_STEMRULE_HIT)
+                continue;
+            rc = varnam_apply_stem (handle, word_buffer, strbuf_to_s(end_buffer), strbuf_to_s(new_ending));
+            if(rc != VARNAM_SUCCESS)
+                continue;
             strcpy(word, strbuf_to_s(word_buffer));
             strbuf_clear (end_buffer);
             if (learn)
@@ -877,13 +946,17 @@ varnam_stem(varnam *handle, char *word, bool learn)
             set_last_error (handle, "Error in retreiving the stem");
             return VARNAM_ERROR;
         }
-
         
         /*checking for level3*/
         rc = varnam_get_stem (handle, strbuf_to_s(end_buffer), strbuf_to_s(new_ending), 3);
         if (rc == VARNAM_STEMRULE_HIT)
         {
-            varnam_apply_stem (handle, word_buffer, strbuf_to_s(end_buffer), strbuf_to_s(new_ending));
+            rc = varnam_check_exception(handle, word_buffer, end_buffer);
+            if(rc == VARNAM_STEMRULE_HIT)
+                continue;
+            rc = varnam_apply_stem (handle, word_buffer, strbuf_to_s(end_buffer), strbuf_to_s(new_ending));
+            if(rc != VARNAM_SUCCESS)
+                continue;
             strcpy(word, strbuf_to_s(word_buffer));
             strbuf_clear (end_buffer);
             if (learn)

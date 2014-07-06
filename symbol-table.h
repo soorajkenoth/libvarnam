@@ -87,6 +87,11 @@ int
 vst_make_prefix_tree (varnam *handle);
 
 int
+vwt_syllables_count (varnam *handle, strbuf *buffer);
+
+int vwt_get_last_syllable (varnam *handle, strbuf *string, strbuf *syllable);
+
+int
 vst_stamp_version (varnam *handle);
 
 #endif

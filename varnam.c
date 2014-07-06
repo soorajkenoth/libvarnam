@@ -695,6 +695,30 @@ int varnam_create_stemrule(varnam* handle, const char* old_ending, const char* n
     return VARNAM_SUCCESS;
 }
 
+int varnam_create_stem_exception(varnam *handle, const char *rule, const char *exception)
+{
+    int rc;
+
+    if(rule == NULL || strlen(rule) == 0)
+    {
+        set_last_error(handle, "No rule");
+        return VARNAM_ERROR;
+    }
+
+    if(exception == NULL || strlen(exception) == 0)
+    {
+        set_last_error(handle, "Invalid exception supplied");
+        return VARNAM_ERROR;
+    }
+
+    rc = vst_persist_stem_exception(handle, rule, exception);
+
+    if(rc != VARNAM_SUCCESS)
+        return VARNAM_ERROR;
+
+    return VARNAM_SUCCESS;
+}
+
 static int
 enable_suggestions(varnam *handle, const char *file)
 {

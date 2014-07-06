@@ -28,9 +28,11 @@ int main(int argc, char *argv[])
 	varnam *handle;
 	char *msg, word[200];
 	int rc;
+	strbuf *syllable;
 
 	FILE *stemfile;
 	stemfile = fopen(argv[1], "r");
+	syllable = strbuf_init(20);
 
 	if(!stemfile)
 	{
@@ -58,7 +60,10 @@ int main(int argc, char *argv[])
 		/*If we don't use a strbuf, varnam_stem would give a segmentation fault*/
 		strbuf_add(string, word);
 		printf("%s : ", word);
-		varnam_stem(handle, (char*)strbuf_to_s(string));
+		vst_get_last_syllable(handle, string, syllable);
+		varnam_stem(handle, (char*)strbuf_to_s(string), false);
+		string->length = strlen(strbuf_to_s(string));
 		strbuf_clear(string);	
+		strbuf_clear(syllable);
 	}
 }

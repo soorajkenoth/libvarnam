@@ -758,6 +758,17 @@ def _create_stemrule(hash, level, options = {})
   end
 end  
 
+def _create_stem_exception(hash, options)
+  return if _context.errors > 0
+
+  hash.each_pair do |key,value|
+    rc = VarnamLibrary.varnam_create_stem_exception($varnam_handle.get_pointer(0), key, value)
+    if rc != 0
+      puts "could not create stemrule exception"
+    end
+  end
+end
+
 def _validate_number(number, name)
     if not number.is_a?(Integer)
         error "#{name} should be a number"
@@ -880,7 +891,7 @@ end
 
 def get_symbols(criteria = {})
   return get_tokens(Varnam::VARNAM_TOKEN_SYMBOL, criteria)
-end
+end 
 
 def get_numbers(criteria = {})
   return get_tokens(Varnam::VARNAM_TOKEN_OTHER, criteria)
@@ -1353,6 +1364,10 @@ def stem
     error error_message
   end
   puts word_tostem
+end
+
+def exceptions_stem(options={}, hash)
+  _create_stem_exception(hash, options)
 end
 
 do_action

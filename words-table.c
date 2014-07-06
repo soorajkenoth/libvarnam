@@ -1399,68 +1399,7 @@ vwt_import_patterns (varnam* handle, FILE* file, void (*onfailure)(const char* l
 }
 
 
-/*Returns number of syllables in the buffer*/
-/*Depends on the language*/
-/*Not a graceful implementation. Will change*/
-int
-vwt_syllables_count(varnam *handle, strbuf *buffer)
-{
-    varray *chars=NULL;
-    int i, rc, type, count=0;
-    sqlite3_stmt *stmt1 = NULL, *stmt2 = NULL;
-    sqlite3 *db;
-    
-    /*swaraas are in value2 in ml.vst*/
-    char *sql1 = "select type from symbols where value2 = ?1";
-    
 
-    chars = strbuf_chars(buffer);
-
-    if(chars == NULL)
-    {
-        set_last_error(handle, "strbuf_chars returned empty varray");
-        return VARNAM_ERROR;
-    }
-
-    db = handle->internal->db;
-    rc = sqlite3_prepare_v2(db, sql1, -1, &stmt1, NULL);
-    if(rc != SQLITE_OK)
-    {
-        set_last_error(handle, "Failed to initialize statement : %s", sqlite3_errmsg(db));
-        sqlite3_finalize( stmt1 );
-        return VARNAM_ERROR;
-    }
-
-    for(i=0;i<=chars->index;++i)
-    {
-        sqlite3_bind_text(stmt1, 1, (char*)chars->memory[i], -1, NULL);
-        rc = sqlite3_step(stmt1);
-
-        /* if consonant, increase count*/
-        /* if double consonant, increase count only once */
-        /*sqlite3_step returns a row only if supplied word is a swara or virama*/
-        if(rc == SQLITE_ROW)
-        {
-            type = sqlite3_column_int(stmt1, 0);
-
-            /*double consonants are written as <consonant> + <virama> + <consonant>*/
-            /*Hence if a virama appears anywhere but end of the word, skip the next consonant*/
-            /*since it will be part of the double consonant*/
-            /*In malayalam, virama (chandrakala) is always mapped to 3*/
-            /*Language specific code, change*/
-            if(type == 3 && i != chars->index)
-                i++;
-        }
-        else
-            /*If the supplied word is a consonant*/
-            count++;
-
-        sqlite3_reset(stmt1);
-
-    }
-
-    return count;
-}
 /* int */
 /* vwt_tokenize_pattern (varnam *handle, const char *pattern, varray *result) */
 /* { */

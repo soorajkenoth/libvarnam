@@ -54,6 +54,7 @@ module VarnamLibrary
   attach_function :varnam_import_learnings_from_file, [:pointer, :string, :pointer], :int
   attach_function :varnam_create_stemrule, [:pointer, :pointer, :pointer, :int], :int
   attach_function :varnam_stem, [:pointer, :pointer], :int
+  attach_function :varnam_create_stem_exception, [:pointer, :pointer, :pointer], :int
 end
 
 VarnamToken = Struct.new(:type, :pattern, :value1, :value2, :value3, :tag, :match_type, :priority, :accept_condition, :flags)
