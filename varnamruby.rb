@@ -10,6 +10,8 @@ require 'singleton'
 # Ruby wrapper for libvarnam
 module VarnamLibrary
   extend FFI::Library
+  ffi_lib FFI::Library::LIBC
+
   ffi_lib $options[:library]
 
   VARNAM_SYMBOL_MAX      = 30
@@ -33,6 +35,7 @@ module VarnamLibrary
     :confidence, :int
   end
 
+  attach_function :malloc, [:size_t], :pointer
   attach_function :varnam_init, [:string, :pointer, :pointer], :int
   attach_function :varnam_init_from_lang, [:string, :pointer, :pointer], :int
   attach_function :varnam_version, [], :string
@@ -53,7 +56,7 @@ module VarnamLibrary
   attach_function :varnam_export_words, [:pointer, :int, :string, :int, :pointer], :int
   attach_function :varnam_import_learnings_from_file, [:pointer, :string, :pointer], :int
   attach_function :varnam_create_stemrule, [:pointer, :pointer, :pointer, :int], :int
-  attach_function :varnam_stem, [:pointer, :pointer], :int
+  attach_function :varnam_stem, [:pointer, :pointer, :pointer], :int
   attach_function :varnam_create_stem_exception, [:pointer, :pointer, :pointer], :int
 end
 

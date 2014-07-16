@@ -409,7 +409,10 @@ varnam_learn(varnam *handle, const char *word)
         return rc;
     }
 
-    rc = varnam_stem(handle, word, true);
+    char *stemmed = (char*)malloc(strlen(word) * sizeof(char));
+    rc = varnam_stem(handle, word, true, stemmed);
+    free(stemmed);
+
     if(rc != VARNAM_SUCCESS)
     {
         vwt_discard_changes (handle);
@@ -697,32 +700,6 @@ varnam_is_known_word(varnam* handle, const char* word)
         return 0;
 }
 
-bool is_swara(const char *ending)
-{
-    if (strcmp(ending, "ാ") == 0)
-        return true;
-    else if (strcmp(ending, "ു") == 0)
-        return true;
-    else if (strcmp(ending, "ം") == 0)
-        return true;
-    else if (strcmp(ending, "്") == 0)
-        return true;
-    else if (strcmp(ending, "െ") == 0)
-        return true;
-    else if (strcmp(ending, "േ") == 0)
-        return true;
-    else if (strcmp(ending, "ോ") == 0)
-        return true;
-    else if (strcmp(ending, "ി") == 0)
-        return true;
-    else if (strcmp(ending, "ൊ") == 0)
-        return true;
-    else if (strcmp(ending, "ീ") == 0)
-        return true;
-    else 
-        return false;
-}
-
 bool stemmer_terminate_condition(strbuf *word_buffer, strbuf *end_buffer)
 {
     char *ending;
@@ -731,8 +708,6 @@ bool stemmer_terminate_condition(strbuf *word_buffer, strbuf *end_buffer)
 
     if(ending == NULL)
         return true;
-   /* if (!is_swara(ending))
-        return true;*/
     if (word_buffer->length < VARNAM_STEM_MIN_SIZE)
         return true;
     if (strcmp(strbuf_to_s(word_buffer), strbuf_to_s(end_buffer)) == 0)
@@ -750,6 +725,12 @@ varnam_get_stem(varnam* handle, const char* old_ending, const char *new_ending, 
     int rc;
 
     db = handle->internal->db;
+
+    if(db == NULL)
+    {
+    	set_last_error(handle, "Varnam engine database uninitialized");
+    	return VARNAM_ERROR;
+    }
 
     char *sql="select new_ending from stemrules where old_ending = ?1 and level = ?2"; 
 
@@ -786,10 +767,14 @@ varnam_get_stem(varnam* handle, const char* old_ending, const char *new_ending, 
 
 }
 
+/*Appends the new suffix to the trimmed word*/
 int varnam_apply_stem(varnam *handle, strbuf *word_buffer, const char *old_ending, const char *new_ending)
 {
     bool status;
 
+    /*Returns if word_length - suffix_length is less than 2
+      Here 2 is chosen arbitrarily.*/
+    /*If this occurs, then varnam will not append the new ending to the word*/
     if(vst_syllables_count(handle, word_buffer) < 2)
         return VARNAM_ERROR;
     if(!strbuf_add (word_buffer, new_ending))
@@ -801,6 +786,7 @@ int varnam_apply_stem(varnam *handle, strbuf *word_buffer, const char *old_endin
     return VARNAM_SUCCESS;
 }
 
+/*Checks if the syllable that is going to be stemmed have an exception case*/
 int varnam_check_exception(varnam *handle, strbuf *word_buffer, strbuf *end_buffer)
 {
     sqlite3 *db;
@@ -853,13 +839,13 @@ int varnam_check_exception(varnam *handle, strbuf *word_buffer, strbuf *end_buff
 
 /*Stems the supplied word*/
 int
-varnam_stem(varnam *handle, char *word, bool learn)
+varnam_stem(varnam *handle, char *word_original, bool learn, char *word)
 {
 	int rc;
 	strbuf *word_buffer, *end_buffer, *temp;
     char *ending,*new_ending;
 
-
+    strcpy(word, word_original);
     if(word == NULL)
     {
         set_last_error (handle, "Cannot stem empty word");
@@ -868,20 +854,10 @@ varnam_stem(varnam *handle, char *word, bool learn)
 
     word_buffer = strbuf_init (strlen(word));
     end_buffer = strbuf_init (strlen(word));
-    
-    strbuf_add(word_buffer, word);
-
-    if(vst_syllables_count(handle, word_buffer) < 3)
-    {
-    	printf("%s\n", word);
-    	return VARNAM_SUCCESS;
-    }
-
     temp = strbuf_init (strlen(word));
     new_ending = strbuf_init (strlen(word));
-    
-    if (word_buffer->length < VARNAM_STEM_MIN_SIZE)
-        return VARNAM_SUCCESS;
+
+    strbuf_add(word_buffer, word);
 
     while(!stemmer_terminate_condition(word_buffer, end_buffer))
     {
@@ -896,6 +872,10 @@ varnam_stem(varnam *handle, char *word, bool learn)
             return VARNAM_ERROR;
         }
 
+        /*the ending of the word just obtained should come on the BEGINNING of the
+        end_buffer. For doing this, we copy the new ending to a temporary buffer,
+        append the contents of the end_buffer to the temporary buffer and then copy 
+        the whole temporary buffer to end_buffer, overwriting it*/
         strbuf_add (temp, ending);
         strbuf_add (temp, strbuf_to_s (end_buffer));
         strbuf_clear (end_buffer);
@@ -905,17 +885,21 @@ varnam_stem(varnam *handle, char *word, bool learn)
         rc = varnam_get_stem (handle, strbuf_to_s(end_buffer), strbuf_to_s(new_ending), 1);
         if (rc == VARNAM_STEMRULE_HIT)
         {
-            /*Add code to learn if exists independently*/
+        	/*Skip stemming if in exceptions table*/
             rc = varnam_check_exception(handle, word_buffer, end_buffer);
             if(rc == VARNAM_STEMRULE_HIT)
                 continue;
+
             rc = varnam_apply_stem (handle, word_buffer, strbuf_to_s(end_buffer), strbuf_to_s(new_ending));
             if(rc != VARNAM_SUCCESS)
                 continue;
+
+            /*The stemmed word is in word_buffer. Copy it over to 'word' to reflect the changes*/
             strcpy (word, strbuf_to_s(word_buffer));
             strbuf_clear (end_buffer);
+
             if (learn)
-                vwt_persist_word (handle, word, 1);
+                varnam_learn_internal(handle, word, 1);
             continue;
         }
         else if (rc != VARNAM_STEMRULE_MISS)
@@ -932,13 +916,16 @@ varnam_stem(varnam *handle, char *word, bool learn)
             rc = varnam_check_exception(handle, word_buffer, end_buffer);
             if(rc == VARNAM_STEMRULE_HIT)
                 continue;
+            
             rc = varnam_apply_stem (handle, word_buffer, strbuf_to_s(end_buffer), strbuf_to_s(new_ending));
             if(rc != VARNAM_SUCCESS)
                 continue;
+            
             strcpy(word, strbuf_to_s(word_buffer));
             strbuf_clear (end_buffer);
+            
             if (learn)
-                vwt_persist_word (handle, word, 1);
+                varnam_learn_internal(handle, word, 1);
             continue;
         }
         else if (rc != VARNAM_STEMRULE_MISS)
@@ -954,13 +941,16 @@ varnam_stem(varnam *handle, char *word, bool learn)
             rc = varnam_check_exception(handle, word_buffer, end_buffer);
             if(rc == VARNAM_STEMRULE_HIT)
                 continue;
+            
             rc = varnam_apply_stem (handle, word_buffer, strbuf_to_s(end_buffer), strbuf_to_s(new_ending));
             if(rc != VARNAM_SUCCESS)
                 continue;
+            
             strcpy(word, strbuf_to_s(word_buffer));
             strbuf_clear (end_buffer);
+            
             if (learn)
-                vwt_persist_word (handle, word, 1);
+                varnam_learn_internal(handle, word, 1);
             continue;
         }
         else if (rc != VARNAM_STEMRULE_MISS)

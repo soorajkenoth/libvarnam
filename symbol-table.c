@@ -1024,7 +1024,14 @@ int vst_get_last_syllable (varnam *handle, strbuf *string, strbuf *syllable)
     strbuf *temp, *end_buffer;
 
     db = handle->internal->db;
-    sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
+
+    rc = sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
+    if(rc != SQLITE_OK)
+    {
+        set_last_error(handle, "Failed to prepare : ", sqlite3_errmsg(db));
+        return VARNAM_ERROR;
+    }
+
     temp = strbuf_init(20);
     strbuf_clear(syllable);
 
@@ -1048,6 +1055,12 @@ int vst_get_last_syllable (varnam *handle, strbuf *string, strbuf *syllable)
             {
                 flag = 1;
             }
+        }
+        else if (rc != SQLITE_DONE) 
+        {
+            set_last_error (handle, "Failed to learn word : %s", sqlite3_errmsg(v_->known_words));
+            sqlite3_reset (v_->learn_word);
+            return VARNAM_ERROR;
         }
         
         strbuf_clear(temp);

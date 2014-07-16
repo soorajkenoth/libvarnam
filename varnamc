@@ -1358,12 +1358,14 @@ end
 def stem
   word_tostem = $options[:text_to_stem]
   ensure_single_word word_tostem
-  rc = VarnamLibrary.varnam_stem($varnam_handle.get_pointer(0), word_tostem)
+  word_ptr = ""
+  rc = VarnamLibrary.varnam_stem($varnam_handle.get_pointer(0), word_tostem, word_ptr)
   if rc != 0
     error_message = VarnamLibrary.varnam_get_last_error($varnam_handle.get_pointer(0))
     error error_message
   end
-  puts word_tostem
+
+  #puts word_ptr
 end
 
 def exceptions_stem(options={}, hash)

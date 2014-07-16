@@ -29,6 +29,7 @@ int main(int argc, char *argv[])
 	char *msg, word[200];
 	int rc;
 	strbuf *syllable;
+	char *stemmed;
 
 	FILE *stemfile;
 	stemfile = fopen(argv[1], "r");
@@ -61,9 +62,13 @@ int main(int argc, char *argv[])
 		strbuf_add(string, word);
 		printf("%s : ", word);
 		vst_get_last_syllable(handle, string, syllable);
-		varnam_stem(handle, (char*)strbuf_to_s(string), false);
+
+		stemmed = (char*)malloc(string->length * sizeof(char));
+		varnam_stem(handle, (char*)strbuf_to_s(string), false, stemmed);
 		string->length = strlen(strbuf_to_s(string));
 		strbuf_clear(string);	
 		strbuf_clear(syllable);
 	}
+
+	free(stemmed);
 }
