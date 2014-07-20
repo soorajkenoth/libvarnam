@@ -13,7 +13,6 @@ author "Navaneeth KN"
 
 $virama = "്"
 virama "~" => "്"
-
 infer_dead_consonants true
 
 vowels "a" => "അ",
@@ -228,7 +227,7 @@ level1	"ാ" => "്",
 	"നു" => "ൻ",
 	"ള്" => "ൾ",
 	"ളു" => "ൾ",
-	"ളെ" => "ൾ",
+	"ളെ" => "ൾ", 
 	"ളേ" => "ൾ",
 	"ളോ" => "ൾ",
 	"ളൂ" => "ൾ",
