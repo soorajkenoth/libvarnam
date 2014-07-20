@@ -38,6 +38,7 @@
 #define VARNAM_TOKEN_OTHER             10
 #define VARNAM_TOKEN_NON_JOINER        11
 #define VARNAM_TOKEN_JOINER            12
+#define VARNAM_TOKEN_STEMRULE          13
 
 /* token flags */
 #define VARNAM_TOKEN_FLAGS_MORE_MATCHES_FOR_PATTERN (1 << 0)
@@ -82,6 +83,7 @@
 #define VARNAM_SCHEMA_SYMBOLS_VERSION 20140115
 #define VARNAM_SCHEMA_WORDS_VERSION 20140115 
 
+#define VARNAM_STEM_MIN_SIZE 3
 struct varnam_rule;
 struct varnam_token_rendering;
 struct strbuf;

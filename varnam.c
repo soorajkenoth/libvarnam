@@ -671,6 +671,54 @@ varnam_flush_buffer(varnam *handle)
     return vst_flush_changes(handle);
 }
 
+int varnam_create_stemrule(varnam* handle, const char* old_ending, const char* new_ending, int level)
+{
+	int rc;
+
+    if(old_ending == NULL || strlen(old_ending) == 0)
+    {
+        set_last_error(handle, "No ending supplied");
+        return VARNAM_ERROR;
+    }
+
+    if(level < 1 || level > 3)
+    {
+        set_last_error(handle, "Invalid level");
+        return VARNAM_ERROR;
+    }
+
+    rc = vst_persist_stemrule(handle, old_ending, new_ending, level);
+    
+    if(rc != VARNAM_SUCCESS)
+    	return VARNAM_ERROR;
+
+    return VARNAM_SUCCESS;
+}
+
+int varnam_create_stem_exception(varnam *handle, const char *rule, const char *exception)
+{
+    int rc;
+
+    if(rule == NULL || strlen(rule) == 0)
+    {
+        set_last_error(handle, "No rule");
+        return VARNAM_ERROR;
+    }
+
+    if(exception == NULL || strlen(exception) == 0)
+    {
+        set_last_error(handle, "Invalid exception supplied");
+        return VARNAM_ERROR;
+    }
+
+    rc = vst_persist_stem_exception(handle, rule, exception);
+
+    if(rc != VARNAM_SUCCESS)
+        return VARNAM_ERROR;
+
+    return VARNAM_SUCCESS;
+}
+
 static int
 enable_suggestions(varnam *handle, const char *file)
 {

@@ -31,6 +31,7 @@ int main(int argc, char **argv)
     suite_add_tcase (suite, get_learning_tests());
     suite_add_tcase (suite, get_export_tests());
     suite_add_tcase (suite, get_token_creation_tests());
+    suite_add_tcase (suite, get_stemmer_tests());
 
     util = suite_create ("util");
     suite_add_tcase (util, get_strbuf_tests());
@@ -45,6 +46,7 @@ int main(int argc, char **argv)
     srunner_set_xml (runner, "testrun.xml");
     srunner_set_fork_status (runner, CK_NOFORK);
     srunner_run_all (runner, CK_NORMAL);
+    
     failed = srunner_ntests_failed (runner);
     srunner_free (runner);
 

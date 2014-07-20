@@ -224,6 +224,11 @@ optparse = OptionParser.new do |opts|
     $options[:output_directory] = directory
   end
 
+  opts.on('-m','--stem TEXT', 'Prints the stem of given word') do |text|
+    set_action('stem')
+    $options[:text_to_stem] = text
+  end
+
   # help screen
   opts.on( '-h', '--help', 'Display this screen' ) do
     puts opts
@@ -376,6 +381,10 @@ def do_action
       import_learnings_from_directory
   end
 
+  if $options[:action] == 'stem'
+    stem
+  end
+
 end
 
 $custom_lists = {}
@@ -523,6 +532,16 @@ def _persist_key_values(pattern, values, token_type, match_type, priority, accep
   vtoken = VarnamToken.new(token_type, pattern, value1, value2, value3, tag, match_type, priority, accept_condition)
   _context.tokens[token_type].push(vtoken)
   push_to_current_custom_list vtoken
+end
+
+def _persist_stemrules(old_ending, new_ending, level)
+  return if _context.errors > 0
+  rc = VarnamLibrary.varnam_create_stemrule($varnam_handle.get_pointer(0), old_ending, new_ending, level)
+  if rc != 0
+    error_message = VarnamLibrary.varnam_get_last_error($varnam_handle.get_pointer(0))
+    error error_message
+  end
+  return rc
 end
 
 def flush_unsaved_changes
@@ -728,6 +747,28 @@ def _create_token(hash, token_type, options = {})
   end
 end
 
+def _create_stemrule(hash, level, options = {})
+  return if _context.errors > 0
+
+  hash.each_pair do |key,value|
+    rc = _persist_stemrules(key, value, level)
+    if rc != 0
+      puts "could not create stemrule for " + key + ":" + value
+    end
+  end
+end  
+
+def _create_stem_exception(hash, options)
+  return if _context.errors > 0
+
+  hash.each_pair do |key,value|
+    rc = VarnamLibrary.varnam_create_stem_exception($varnam_handle.get_pointer(0), key, value)
+    if rc != 0
+      puts "could not create stemrule exception"
+    end
+  end
+end
+
 def _validate_number(number, name)
     if not number.is_a?(Integer)
         error "#{name} should be a number"
@@ -850,7 +891,7 @@ end
 
 def get_symbols(criteria = {})
   return get_tokens(Varnam::VARNAM_TOKEN_SYMBOL, criteria)
-end
+end 
 
 def get_numbers(criteria = {})
   return get_tokens(Varnam::VARNAM_TOKEN_OTHER, criteria)
@@ -1299,6 +1340,36 @@ def export_words
   puts ""
   puts "Exported words to #{outDir}"
 
+end
+
+def level1(options={},hash)
+  #_ensure_sanity(hash)
+  _create_stemrule(hash, 1, options) 
+end
+
+def level2(options={},hash)
+	_create_stemrule(hash, 2, options)
+end
+
+def level3(options={}, hash)
+	_create_stemrule(hash, 3, options)
+end
+
+def stem
+  word_tostem = $options[:text_to_stem]
+  ensure_single_word word_tostem
+  word_ptr = ""
+  rc = VarnamLibrary.varnam_stem($varnam_handle.get_pointer(0), word_tostem, word_ptr)
+  if rc != 0
+    error_message = VarnamLibrary.varnam_get_last_error($varnam_handle.get_pointer(0))
+    error error_message
+  end
+
+  #puts word_ptr
+end
+
+def exceptions_stem(options={}, hash)
+  _create_stem_exception(hash, options)
 end
 
 do_action

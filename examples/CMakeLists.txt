@@ -13,8 +13,9 @@ message ("Generating project ${PROJECT_NAME}")
 
 add_executable(transliteration transliteration.c)
 add_executable(learning learning.c)
+add_executable(stemmer stemmer.c)
 
 target_link_libraries(transliteration ${VARNAM_LIBRARY_NAME})
 target_link_libraries(learning ${VARNAM_LIBRARY_NAME})
-
+target_link_libraries(stemmer ${VARNAM_LIBRARY_NAME})
 

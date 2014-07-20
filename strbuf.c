@@ -185,8 +185,8 @@ varray*
 strbuf_chars(strbuf *b)
 {
   const unsigned char *ustring; const char *inputcopy;
-  int bytes_read = 0;
-  varray *chars;
+  int bytes_read=0;
+  varray *chars = NULL;
   strbuf *tmp;
 
   inputcopy = b->buffer;
@@ -199,6 +199,22 @@ strbuf_chars(strbuf *b)
     bytes_read = 0;
   }
   return chars;
+}
+
+ /*   Returns the last unicode character of the word
+*/
+char*
+strbuf_get_ending(strbuf *word)
+{
+    varray *characters;
+    characters = strbuf_chars(word);
+
+    if(characters == NULL)
+        return NULL;
+    else if(characters->index < 0)
+        return NULL;
+    else
+        return (char*)characters->memory[characters->index];
 }
 
 void strbuf_destroy(void *s)
