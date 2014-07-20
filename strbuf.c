@@ -186,7 +186,7 @@ strbuf_chars(strbuf *b)
 {
   const unsigned char *ustring; const char *inputcopy;
   int bytes_read=0;
-  varray *chars;
+  varray *chars = NULL;
   strbuf *tmp;
 
   inputcopy = b->buffer;
@@ -209,7 +209,9 @@ strbuf_get_ending(strbuf *word)
     varray *characters;
     characters = strbuf_chars(word);
 
-    if(characters->index == -1)
+    if(characters == NULL)
+        return NULL;
+    else if(characters->index < 0)
         return NULL;
     else
         return (char*)characters->memory[characters->index];

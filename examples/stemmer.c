@@ -64,7 +64,9 @@ int main(int argc, char *argv[])
 		vst_get_last_syllable(handle, string, syllable);
 
 		stemmed = (char*)malloc(string->length * sizeof(char));
+		printf("last : %s", strbuf_to_s(syllable));
 		varnam_stem(handle, (char*)strbuf_to_s(string), false, stemmed);
+		printf("%s\n", stemmed);
 		string->length = strlen(strbuf_to_s(string));
 		strbuf_clear(string);	
 		strbuf_clear(syllable);

@@ -963,6 +963,7 @@ vst_syllables_count(varnam *handle, strbuf *buffer)
     sqlite3 *db;
     
     /*swaraas are in value2 in ml.vst*/
+    /*This is so for malayalam*/
     char *sql1 = "select type from symbols where value2 = ?1";
     
 
@@ -1041,6 +1042,9 @@ int vst_get_last_syllable (varnam *handle, strbuf *string, strbuf *syllable)
 
         if(ending == NULL)
         {
+            /*Restoring the string*/
+            strbuf_clear(string);
+            strbuf_add(string, strbuf_to_s(syllable));
             set_last_error(handle, "ending is null");
             return VARNAM_ERROR;
         }
@@ -1058,7 +1062,7 @@ int vst_get_last_syllable (varnam *handle, strbuf *string, strbuf *syllable)
         }
         else if (rc != SQLITE_DONE) 
         {
-            set_last_error (handle, "Failed to learn word : %s", sqlite3_errmsg(v_->known_words));
+            set_last_error (handle, "Failed : %s", sqlite3_errmsg(handle->internal->db));
             sqlite3_reset (v_->learn_word);
             return VARNAM_ERROR;
         }

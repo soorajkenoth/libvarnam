@@ -410,6 +410,11 @@ varnam_learn(varnam *handle, const char *word)
     }
 
     char *stemmed = (char*)malloc(strlen(word) * sizeof(char));
+    if(stemmed == NULL)
+    {
+        set_last_error(handle, "Memory allocation failed");
+        return VARNAM_ERROR;
+    }
     rc = varnam_stem(handle, word, true, stemmed);
     free(stemmed);
 
@@ -775,8 +780,9 @@ int varnam_apply_stem(varnam *handle, strbuf *word_buffer, const char *old_endin
     /*Returns if word_length - suffix_length is less than 2
       Here 2 is chosen arbitrarily.*/
     /*If this occurs, then varnam will not append the new ending to the word*/
-    if(vst_syllables_count(handle, word_buffer) < 2)
-        return VARNAM_ERROR;
+
+    /*if(vst_syllables_count(handle, word_buffer) < 2)
+        return VARNAM_ERROR;*/
     if(!strbuf_add (word_buffer, new_ending))
     {
         set_last_error (handle, "Could not add new_ending to word buffer");
@@ -817,7 +823,7 @@ int varnam_check_exception(varnam *handle, strbuf *word_buffer, strbuf *end_buff
     if(rc != VARNAM_SUCCESS)
     {
         set_last_error(handle, "Could not obtain last syllable");
-        return VARNAM_ERROR;
+        return VARNAM_SUCCESS;
     }
     
     rc = sqlite3_step(stmt);
@@ -845,6 +851,11 @@ varnam_stem(varnam *handle, char *word_original, bool learn, char *word)
 	strbuf *word_buffer, *end_buffer, *temp;
     char *ending,*new_ending;
 
+    if(word_original == NULL)
+        return VARNAM_ERROR;
+
+    if(word == NULL)
+        return VARNAM_ERROR;
     strcpy(word, word_original);
     if(word == NULL)
     {
@@ -889,7 +900,7 @@ varnam_stem(varnam *handle, char *word_original, bool learn, char *word)
             rc = varnam_check_exception(handle, word_buffer, end_buffer);
             if(rc == VARNAM_STEMRULE_HIT)
                 continue;
-
+            
             rc = varnam_apply_stem (handle, word_buffer, strbuf_to_s(end_buffer), strbuf_to_s(new_ending));
             if(rc != VARNAM_SUCCESS)
                 continue;
@@ -959,8 +970,6 @@ varnam_stem(varnam *handle, char *word_original, bool learn, char *word)
             return VARNAM_ERROR;
         }
     }
-
-    printf ("%s\n", word);
 
     return VARNAM_SUCCESS;  
 }
