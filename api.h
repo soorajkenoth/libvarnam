@@ -479,6 +479,17 @@ VARNAM_EXPORT extern int varnam_is_known_word(
         varnam *handle,
         const char *word);
 
+int extern varnam_create_stemrule(varnam *handle,
+     const char* old_ending,
+     const char* new_ending,
+      int level);
+
+int
+varnam_stem(varnam *handle, char *word, bool learn, char *stemmed);
+
+int 
+varnam_create_stem_exception(varnam *handle, const char *rule, const char *exception);
+
 VARNAM_EXPORT extern void
 varnam_destroy(varnam *handle);
 

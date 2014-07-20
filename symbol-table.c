@@ -22,14 +22,17 @@ ensure_schema_exists(varnam *handle, char **msg)
     const char *sql =
         "pragma page_size=4096;"
         "create table if not exists metadata (key TEXT UNIQUE, value TEXT);"
-        "create table if not exists symbols (id INTEGER PRIMARY KEY AUTOINCREMENT, type INTEGER, pattern TEXT, value1 TEXT, value2 TEXT, value3 TEXT, tag TEXT, match_type INTEGER, priority INTEGER DEFAULT 0, accept_condition INTEGER, flags INTEGER DEFAULT 0);";
+        "create table if not exists symbols (id INTEGER PRIMARY KEY AUTOINCREMENT, type INTEGER, pattern TEXT, value1 TEXT, value2 TEXT, value3 TEXT, tag TEXT, match_type INTEGER, priority INTEGER DEFAULT 0, accept_condition INTEGER, flags INTEGER DEFAULT 0);"
+        "create table if not exists stemrules (id INTEGER PRIMARY KEY AUTOINCREMENT, old_ending TEXT, new_ending TEXT, level INTEGER);"
+        "create table if not exists stem_exceptions (id INTEGER PRIMARY KEY AUTOINCREMENT, stem TEXT, exception TEXT)";
 
     const char *indexes =
         "create index if not exists index_metadata on metadata (key);"
         "create index if not exists index_pattern on symbols (pattern);"
         "create index if not exists index_value1 on symbols (value1);"
         "create index if not exists index_value2 on symbols (value2);"
-        "create index if not exists index_value3 on symbols (value3);";
+        "create index if not exists index_value3 on symbols (value3);"
+        "create index if not exists index_stemmer on stemrules (old_ending);";
 
     char *zErrMsg = 0;
     int rc;
@@ -321,6 +324,76 @@ vst_persist_token(
 
     return VARNAM_SUCCESS;
 }
+
+/*Stores a stem rule into the database*/
+
+int vst_persist_stemrule(varnam *handle, const char* old_ending, const char* new_ending, int level)
+{
+    sqlite3 *db;
+    sqlite3_stmt *stmt;
+    int rc;
+    char *sql = "insert into stemrules (old_ending,new_ending,level) values (?1, ?2, ?3);";
+
+    db = handle->internal->db;
+
+    rc = sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
+
+    if(rc != SQLITE_OK)
+    {
+        set_last_error(handle, "Failed to initialize statement : %s", sqlite3_errmsg(db));
+        sqlite3_finalize( stmt );
+        return VARNAM_ERROR;
+    }
+
+    sqlite3_bind_text(stmt, 1, old_ending, -1, NULL);
+    sqlite3_bind_text(stmt, 2, new_ending, -1, NULL);
+    sqlite3_bind_int(stmt, 3, level);
+
+    rc = sqlite3_step(stmt);
+
+    if(rc != SQLITE_DONE)
+    {
+        set_last_error (handle, "Failed to persist stemrule : %s", sqlite3_errmsg(db));
+        sqlite3_finalize( stmt );
+        return VARNAM_ERROR;
+    }
+
+    sqlite3_finalize( stmt );
+    return VARNAM_SUCCESS;
+}
+
+int vst_persist_stem_exception(varnam *handle, const char *rule, const char *exception)
+{
+    sqlite3 *db;
+    sqlite3_stmt *stmt;
+    int rc;
+    char *sql = "insert into stem_exceptions (stem, exception) values (?1, ?2)";
+
+    db = handle->internal->db;
+
+    rc = sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
+    if(rc != SQLITE_OK)
+    {
+        set_last_error(handle, "Failed to initialize statement : %s", sqlite3_errmsg(db));
+        sqlite3_finalize( stmt );
+        return VARNAM_ERROR;
+    }
+
+    sqlite3_bind_text(stmt, 1, rule, -1, NULL);
+    sqlite3_bind_text(stmt, 2, exception, -1, NULL);
+
+    rc = sqlite3_step(stmt);
+
+    if (rc != SQLITE_DONE)
+    {
+        set_last_error (handle, "Failed to persist stemrule : %s", sqlite3_errmsg(db));
+        sqlite3_finalize( stmt );
+        return VARNAM_ERROR;
+    }
+
+    sqlite3_finalize( stmt );
+    return VARNAM_SUCCESS;
+}   
 
 int
 vst_flush_changes(varnam *handle)
@@ -874,6 +947,143 @@ vst_tokenize (varnam *handle, const char *input, int tokenize_using, int match_t
         inputcopy = input;
     }
 
+    return VARNAM_SUCCESS;
+}
+
+/*Returns number of syllables in the buffer*/
+/*Depends on the language*/
+/*Not a graceful implementation. Will change*/
+
+int
+vst_syllables_count(varnam *handle, strbuf *buffer)
+{
+    varray *chars=NULL;
+    int i, rc, type, count=0;
+    sqlite3_stmt *stmt1 = NULL, *stmt2 = NULL;
+    sqlite3 *db;
+    
+    /*swaraas are in value2 in ml.vst*/
+    /*This is so for malayalam*/
+    char *sql1 = "select type from symbols where value2 = ?1";
+    
+
+    chars = strbuf_chars(buffer);
+
+    if(chars == NULL)
+    {
+        set_last_error(handle, "strbuf_chars returned empty varray");
+        return VARNAM_ERROR;
+    }
+
+    db = handle->internal->db;
+    rc = sqlite3_prepare_v2(db, sql1, -1, &stmt1, NULL);
+    if(rc != SQLITE_OK)
+    {
+        set_last_error(handle, "Failed to initialize statement : %s", sqlite3_errmsg(db));
+        sqlite3_finalize( stmt1 );
+        return VARNAM_ERROR;
+    }
+
+    for(i=0;i<=chars->index;++i)
+    {
+        sqlite3_bind_text(stmt1, 1, (char*)chars->memory[i], -1, NULL);
+        rc = sqlite3_step(stmt1);
+
+        /* if consonant, increase count*/
+        /* if double consonant, increase count only once */
+        /*sqlite3_step returns a row only if supplied word is a swara or virama*/
+        if(rc == SQLITE_ROW)
+        {
+            type = sqlite3_column_int(stmt1, 0);
+
+            /*double consonants are written as <consonant> + <virama> + <consonant>*/
+            /*Hence if a virama appears anywhere but end of the word, skip the next consonant*/
+            /*since it will be part of the double consonant*/
+            /*In malayalam, virama (chandrakala) is always mapped to 3*/
+            /*Language specific code, change*/
+            if(type == 3 && i != chars->index)
+                i++;
+        }
+        else
+            /*If the supplied word is a consonant*/
+            count++;
+
+        sqlite3_reset(stmt1);
+
+    }
+
+    return count;
+}
+
+int vst_get_last_syllable (varnam *handle, strbuf *string, strbuf *syllable)
+{
+    int rc, flag=0, type;
+    char *ending;
+    sqlite3 *db;
+    sqlite3_stmt *stmt;
+    char *sql = "select type from symbols where value1 = ?1";
+    strbuf *temp, *end_buffer;
+
+    db = handle->internal->db;
+
+    rc = sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
+    if(rc != SQLITE_OK)
+    {
+        set_last_error(handle, "Failed to prepare : ", sqlite3_errmsg(db));
+        return VARNAM_ERROR;
+    }
+
+    temp = strbuf_init(20);
+    strbuf_clear(syllable);
+
+    while(!flag)
+    {
+        ending = strbuf_get_ending(string);
+
+        if(ending == NULL)
+        {
+            /*Restoring the string*/
+            strbuf_clear(string);
+            strbuf_add(string, strbuf_to_s(syllable));
+            set_last_error(handle, "ending is null");
+            return VARNAM_ERROR;
+        }
+
+        sqlite3_bind_text(stmt, 1, ending, -1, NULL);
+
+        rc = sqlite3_step(stmt);
+        if(rc == SQLITE_ROW)
+        {
+            type = sqlite3_column_int(stmt, 0);
+            if(type == 2)
+            {
+                flag = 1;
+            }
+        }
+        else if (rc != SQLITE_DONE) 
+        {
+            set_last_error (handle, "Failed : %s", sqlite3_errmsg(handle->internal->db));
+            sqlite3_reset (v_->learn_word);
+            return VARNAM_ERROR;
+        }
+        
+        strbuf_clear(temp);
+        strbuf_add(temp, ending);
+        strbuf_add(temp, strbuf_to_s(syllable));
+        strbuf_clear(syllable);
+        strbuf_add(syllable, strbuf_to_s(temp));
+        
+        if(strbuf_remove_from_last(string, ending) == false)
+        {
+            set_last_error(handle, "Could not remove last character");
+            return VARNAM_ERROR;
+        }
+
+        sqlite3_reset(stmt);
+
+    }
+
+    strbuf_add(string, strbuf_to_s(syllable));
     return VARNAM_SUCCESS;
 }
 

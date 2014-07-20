@@ -76,5 +76,4 @@ vwt_import_words (varnam* handle, FILE* file, void (*onfailure)(const char* line
 
 int
 vwt_import_patterns (varnam* handle, FILE* file, void (*onfailure)(const char* line));
-
 #endif
