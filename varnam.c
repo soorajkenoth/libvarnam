@@ -639,6 +639,55 @@ varnam_create_token(
     return rc;
 }
 
+/*adds a stem rule into the varnam symbol table*/
+int varnam_create_stemrule(varnam* handle, const char* old_ending, const char* new_ending)
+{
+    int rc=0;
+
+    if(handle == NULL)
+        return VARNAM_ERROR;
+
+    if(old_ending == NULL || new_ending == NULL)
+    {
+        set_last_error(handle, "No ending supplied");
+        return VARNAM_ERROR;
+    }
+
+    rc = vst_persist_stemrule(handle, old_ending, new_ending);
+
+    if(rc != VARNAM_SUCCESS)
+    {
+        printf("Error at persist stemrule\n");
+        return VARNAM_ERROR;
+    }
+
+    return VARNAM_SUCCESS;
+}
+
+int varnam_create_stem_exception(varnam *handle, const char *rule, const char *exception)
+{
+    int rc;
+
+    if(rule == NULL || strlen(rule) == 0)
+    {
+        set_last_error(handle, "No rule");
+        return VARNAM_ERROR;
+    }
+
+    if(exception == NULL || strlen(exception) == 0)
+    {
+        set_last_error(handle, "Invalid exception supplied");
+        return VARNAM_ERROR;
+    }
+
+    rc = vst_persist_stem_exception(handle, rule, exception);
+
+    if(rc != VARNAM_SUCCESS)
+        return VARNAM_ERROR;
+
+    return VARNAM_SUCCESS;
+}
+
 int
 varnam_get_all_tokens(
     varnam *handle,
