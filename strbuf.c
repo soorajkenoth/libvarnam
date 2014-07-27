@@ -201,6 +201,30 @@ strbuf_chars(strbuf *b)
   return chars;
 }
 
+/* Returns the last unicode character of the word
++*/
+const char*
+strbuf_get_ending(strbuf *word)
+{
+    varray *characters=NULL;
+    characters = strbuf_chars(word);
+    if(characters == NULL)
+        return NULL;
+    else if(characters->index < 0)
+    {
+        varray_free(characters, NULL);
+        return NULL;
+    }
+    else
+    {
+        char *ending = (char*)malloc(strlen((char*)characters->memory[characters->index]) * sizeof(char) + 1);
+        strcpy(ending, (char*)characters->memory[characters->index]);
+        varray_free(characters, *free);
+        return ending;
+    }
+
+}
+
 void strbuf_destroy(void *s)
 {
     strbuf *string;

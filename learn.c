@@ -10,6 +10,7 @@
 #include "api.h"
 #include "vtypes.h"
 #include "varray.h"
+#include "vword.h"
 #include "util.h"
 #include "result-codes.h"
 #include "symbol-table.h"
@@ -389,10 +390,11 @@ varnam_learn_internal(varnam *handle, const char *word, int confidence)
 int
 varnam_learn(varnam *handle, const char *word)
 {
-    int rc;
-#ifdef _RECORD_EXEC_TIME
-    V_BEGIN_TIMING
-#endif
+    int rc,i;
+    varray *stem_results;
+    #ifdef _RECORD_EXEC_TIME
+        V_BEGIN_TIMING
+    #endif
 
     reset_pool (handle);
 
@@ -407,6 +409,17 @@ varnam_learn(varnam *handle, const char *word)
     if (rc != VARNAM_SUCCESS) {
         vwt_discard_changes (handle);
         return rc;
+    }
+
+
+    stem_results= get_pooled_array(handle);
+    rc = stem(handle, word, stem_results);
+    if(rc != VARNAM_SUCCESS)
+        return rc;
+    
+    for(i=0;i<=stem_results->index;i++)
+    {
+        varnam_learn_internal(handle, ((vword*)varray_get(stem_results, i))->text, 1);
     }
 
     rc = vwt_end_changes (handle);
@@ -688,4 +701,170 @@ varnam_is_known_word(varnam* handle, const char* word)
         return 1;
     else
         return 0;
+}
+
+static int check_exception(varnam *handle, strbuf *word_buffer, strbuf *end_buffer)
+{
+    sqlite3 *db;
+    sqlite3_stmt *stmt;
+    strbuf *syllable = get_pooled_string(handle);
+    int rc;
+    char *sql = "select exception from stem_exceptions where stem = ?1";
+
+    db = handle->internal->db;
+
+    rc = sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
+    if(rc != SQLITE_OK)
+    {
+        set_last_error(handle, "Failed to initialize statement : %s", sqlite3_errmsg(db));
+        sqlite3_finalize( stmt );
+        return VARNAM_ERROR;
+    }
+
+    rc = sqlite3_bind_text(stmt, 1, strbuf_to_s(end_buffer), -1, NULL);
+    if(rc != SQLITE_OK)
+    {   
+        set_last_error(handle, "Failed to initialize statement : %s", sqlite3_errmsg(db));
+        sqlite3_finalize( stmt );
+        return VARNAM_ERROR;
+    }
+
+    rc = vst_get_last_syllable(handle, word_buffer, syllable);
+    if(rc != VARNAM_SUCCESS)
+    {
+        set_last_error(handle, "Could not obtain last syllable");
+        return VARNAM_SUCCESS;
+    }
+
+    rc = sqlite3_step(stmt);
+    if(rc == SQLITE_ROW)
+    {
+        if(sqlite3_column_bytes(stmt,0) != 0)
+        {
+            if(strcmp(strbuf_to_s(syllable), (char*)sqlite3_column_blob(stmt, 0)) == 0)
+            {
+                strbuf_destroy(syllable);    
+                return VARNAM_STEMRULE_HIT;
+            }
+            else
+            {
+                strbuf_destroy(syllable); 
+                return VARNAM_STEMRULE_MISS;
+            }
+        }
+    }
+    else if(rc == SQLITE_DONE)
+    {
+        strbuf_destroy(syllable); 
+        return VARNAM_SUCCESS;
+    }
+
+    strbuf_destroy(syllable); 
+    return VARNAM_ERROR;
+}
+
+/*Searches the symbol table to see if the old_ending constitutes a stem rule*/
+static int
+get_stem(varnam* handle, strbuf* old_ending, strbuf *new_ending)
+{
+    sqlite3 *db;
+    sqlite3_stmt *stmt;
+    int rc;
+    const char *sql="select new_ending from stemrules where old_ending = ?1;";
+
+    db = handle->internal->db;
+
+    rc = sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
+    if(rc != SQLITE_OK)
+    {
+        set_last_error(handle, "Failed to prepare statement : %s", sqlite3_errmsg(db));
+        sqlite3_finalize( stmt );
+        return VARNAM_ERROR;
+    }
+
+    sqlite3_bind_text(stmt, 1, strbuf_to_s(old_ending), -1, NULL);
+
+    rc = sqlite3_step(stmt);
+
+    if(rc == SQLITE_ROW)
+    {
+        strbuf_clear(new_ending);
+        strbuf_add(new_ending, (char*)sqlite3_column_text(stmt, 0));
+        sqlite3_finalize(stmt);
+        return VARNAM_STEMRULE_HIT;
+    }
+    else if(rc == SQLITE_DONE)
+    {
+        sqlite3_finalize(stmt);
+        return VARNAM_STEMRULE_MISS;
+    }
+    else
+    {
+        sqlite3_finalize(stmt);
+        set_last_error(handle, "Sqlite error : %s", sqlite3_errmsg(db));
+        return VARNAM_ERROR;
+    }
+
+}
+
+int stem(varnam *handle, const char *word, varray *stem_results)
+{
+    int rc;
+    strbuf *word_copy, *suffix, *new_ending, *temp;
+    char *end_char;
+
+    word_copy = get_pooled_string(handle);
+    suffix = get_pooled_string(handle);
+    temp = get_pooled_string(handle);
+    new_ending = get_pooled_string(handle);
+    strbuf_add(word_copy, word);
+
+    while(word_copy->length > 0)
+    {
+        /*the next character of word_buffer should go 
+         to the beginning of the end_bufer. For this 
+         we copy end_buffer to temp, clear end_buffer,
+         add new ending to end_buffer and append the 
+         contents of temp back to end_buffer*/
+        strbuf_clear(temp);
+        strbuf_add(temp, strbuf_to_s(suffix));
+        strbuf_clear(suffix);
+        end_char = strbuf_get_ending(word_copy);
+        strbuf_add(suffix, end_char);
+        strbuf_add(suffix, strbuf_to_s(temp));
+        strbuf_remove_from_last(word_copy, end_char);
+
+        rc = get_stem(handle, suffix, new_ending);
+        if(rc == VARNAM_STEMRULE_HIT)
+        {
+            rc = check_exception(handle, word_copy, suffix);
+            if(rc == VARNAM_STEMRULE_HIT)
+                continue;
+            else if(rc != VARNAM_STEMRULE_MISS && rc != VARNAM_SUCCESS)
+                return VARNAM_ERROR;
+
+            strbuf_add(word_copy, strbuf_to_s(new_ending));
+            /*Creating a vword using Word()
+             word_buffer will change in subsequent iterations of the loop
+             So pushing a pointer to word_buffer->buffer to varray is of
+             no use. So we create a vword for each word that is to be learned
+             and push it to the varray*/
+            varray_push(stem_results, Word(handle, (char*)strbuf_to_s(word_copy), 0));
+            strbuf_clear(suffix);
+        }
+        else if(rc != VARNAM_STEMRULE_MISS)
+        {
+            free(end_char);
+            set_last_error(handle, "stemrule query failed");
+            return VARNAM_ERROR;
+        }
+
+        free(end_char);
+    }
+
+    strbuf_destroy(temp);
+    strbuf_destroy(word_copy);
+    strbuf_destroy(suffix);
+    strbuf_destroy(new_ending);
+    return VARNAM_SUCCESS;
 }
