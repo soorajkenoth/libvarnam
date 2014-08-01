@@ -10,7 +10,6 @@
 #include "api.h"
 #include "vtypes.h"
 #include "varray.h"
-#include "vword.h"
 #include "util.h"
 #include "result-codes.h"
 #include "symbol-table.h"
@@ -390,11 +389,10 @@ varnam_learn_internal(varnam *handle, const char *word, int confidence)
 int
 varnam_learn(varnam *handle, const char *word)
 {
-    int rc,i;
-    varray *stem_results;
-    #ifdef _RECORD_EXEC_TIME
-        V_BEGIN_TIMING
-    #endif
+    int rc;
+#ifdef _RECORD_EXEC_TIME
+    V_BEGIN_TIMING
+#endif
 
     reset_pool (handle);
 
@@ -410,16 +408,6 @@ varnam_learn(varnam *handle, const char *word)
         vwt_discard_changes (handle);
         return rc;
     }
-
-
-    stem_results= varray_init();
-    rc = varnam_stem(handle, word, stem_results);
-    if(rc != VARNAM_SUCCESS)
-        return rc;
-    for(i=0;i<=stem_results->index;i++)
-        varnam_learn_internal(handle, ((vword*)varray_get(stem_results, i))->text, 1);
-    
-    varray_free(stem_results, *destroy_word);
 
     rc = vwt_end_changes (handle);
     if (rc != VARNAM_SUCCESS)
