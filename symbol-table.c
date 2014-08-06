@@ -975,7 +975,7 @@ int vst_get_last_syllable (varnam *handle, strbuf *string, strbuf *syllable)
         return VARNAM_ERROR;
     }
 
-    temp = strbuf_init(8);
+    temp = get_pooled_string(handle);
     strbuf_clear(syllable);
 
     while(!flag)

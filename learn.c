@@ -10,7 +10,6 @@
 #include "api.h"
 #include "vtypes.h"
 #include "varray.h"
-#include "vword.h"
 #include "util.h"
 #include "result-codes.h"
 #include "symbol-table.h"
