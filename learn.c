@@ -10,6 +10,7 @@
 #include "api.h"
 #include "vtypes.h"
 #include "varray.h"
+#include "vword.h"
 #include "util.h"
 #include "result-codes.h"
 #include "symbol-table.h"
@@ -742,23 +743,19 @@ static int check_exception(varnam *handle, strbuf *word_buffer, strbuf *end_buff
         {
             if(strcmp(strbuf_to_s(syllable), (char*)sqlite3_column_blob(stmt, 0)) == 0)
             {
-                strbuf_destroy(syllable);    
                 return VARNAM_STEMRULE_HIT;
             }
             else
             {
-                strbuf_destroy(syllable); 
                 return VARNAM_STEMRULE_MISS;
             }
         }
     }
     else if(rc == SQLITE_DONE)
     {
-        strbuf_destroy(syllable); 
         return VARNAM_SUCCESS;
     }
 
-    strbuf_destroy(syllable); 
     return VARNAM_ERROR;
 }
 
@@ -828,7 +825,7 @@ int stem(varnam *handle, const char *word, varray *stem_results)
         strbuf_clear(temp);
         strbuf_add(temp, strbuf_to_s(suffix));
         strbuf_clear(suffix);
-        end_char = strbuf_get_ending(word_copy);
+        end_char = strbuf_get_last_char(word_copy);
         strbuf_add(suffix, end_char);
         strbuf_add(suffix, strbuf_to_s(temp));
         strbuf_remove_from_last(word_copy, end_char);
@@ -861,9 +858,5 @@ int stem(varnam *handle, const char *word, varray *stem_results)
         free(end_char);
     }
 
-    strbuf_destroy(temp);
-    strbuf_destroy(word_copy);
-    strbuf_destroy(suffix);
-    strbuf_destroy(new_ending);
     return VARNAM_SUCCESS;
 }

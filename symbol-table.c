@@ -975,18 +975,17 @@ int vst_get_last_syllable (varnam *handle, strbuf *string, strbuf *syllable)
         return VARNAM_ERROR;
     }
 
-    temp = get_pooled_string(handle);
+    temp = strbuf_init(8);
     strbuf_clear(syllable);
 
     while(!flag)
     {
-        ending = strbuf_get_ending(string);
+        ending = strbuf_get_last_char(string);
         if(ending == NULL)
         {
             /*Restoring the string*/
             strbuf_clear(string);
             strbuf_add(string, strbuf_to_s(syllable));
-            strbuf_destroy(temp);
             set_last_error(handle, "ending is null");
             return VARNAM_ERROR;
         }
@@ -1010,7 +1009,6 @@ int vst_get_last_syllable (varnam *handle, strbuf *string, strbuf *syllable)
         {
             set_last_error (handle, "Failed : %s", sqlite3_errmsg(db));
             sqlite3_reset (stmt);
-            strbuf_destroy(temp);
             free(ending);
             return VARNAM_ERROR;
         }
@@ -1023,7 +1021,6 @@ int vst_get_last_syllable (varnam *handle, strbuf *string, strbuf *syllable)
 
         if(strbuf_remove_from_last(string, ending) == false)
         {
-            strbuf_destroy(temp);
             free(ending);
             set_last_error(handle, "vst_get_last_syllable : could not remove last character");
             return VARNAM_ERROR;
@@ -1035,7 +1032,6 @@ int vst_get_last_syllable (varnam *handle, strbuf *string, strbuf *syllable)
 
     /*Restoring the string*/
     strbuf_add(string, strbuf_to_s(syllable));
-    strbuf_destroy(temp);
    
     return VARNAM_SUCCESS;
 }

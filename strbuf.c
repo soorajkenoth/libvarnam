@@ -204,7 +204,7 @@ strbuf_chars(strbuf *b)
 /* Returns the last unicode character of the word
 +*/
 const char*
-strbuf_get_ending(strbuf *word)
+strbuf_get_last_char(strbuf *word)
 {
     varray *characters=NULL;
     characters = strbuf_chars(word);
