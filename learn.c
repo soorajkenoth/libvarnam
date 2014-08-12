@@ -419,7 +419,7 @@ varnam_learn(varnam *handle, const char *word)
     
     for(i=0;i<=stem_results->index;i++)
     {
-        varnam_learn_internal(handle, ((vword*)varray_get(stem_results, i))->text, 1);
+        varnam_learn_internal(handle, ((vword*)varray_get(stem_results, i))->text, 0);
     }
 
     rc = vwt_end_changes (handle);
@@ -456,8 +456,10 @@ varnam_learn_from_file(varnam *handle,
     char line_buffer[10000];
     strbuf *word;
     varray *word_parts;
+    varray *stem_results;
     int confidence;
     int parts;
+    int i;
 
     infile = fopen(filepath, "r");
     if (!infile) {
@@ -506,6 +508,18 @@ varnam_learn_from_file(varnam *handle,
 
             word = varray_get (word_parts, 0);
             rc = varnam_learn_internal (handle, strbuf_to_s (word), confidence);
+
+
+    		stem_results= get_pooled_array(handle);
+    		rc = stem(handle, strbuf_to_s(word), stem_results);
+    		if(rc != VARNAM_SUCCESS)
+        		return rc;
+    
+    		for(i=0;i<=stem_results->index;i++)
+    		{
+        		varnam_learn_internal(handle, ((vword*)varray_get(stem_results, i))->text, 0);
+    		}
+            
             if (rc) {
                 if (status != NULL) status->failed++;
             }
