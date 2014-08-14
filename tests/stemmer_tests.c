@@ -7,12 +7,13 @@
 #include <check.h>
 #include <stdio.h>
 #include <string.h>
-#include <malloc.h>
 #include "testcases.h"
 #include "../varnam.h"
+#include "../symbol-table.h"
 #include "../vword.h"
 
-void setup_test_data()
+void
+setup_test_data()
 {
 	char **msg=NULL;
 	char *filename = get_unique_filename();
@@ -21,7 +22,8 @@ void setup_test_data()
 	ensure_schema_exists(varnam_instance, msg);
 }
 
-int insert_to_vst(int type,
+int
+insert_to_vst(int type,
 	const char *pattern,
 	const char *value1,
 	const char *value2,

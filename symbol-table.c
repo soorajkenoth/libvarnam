@@ -957,7 +957,8 @@ vst_tokenize (varnam *handle, const char *input, int tokenize_using, int match_t
     return VARNAM_SUCCESS;
 }
 
-int vst_get_last_syllable (varnam *handle, strbuf *string, strbuf *syllable)
+int
+vst_get_last_syllable (varnam *handle, strbuf *string, strbuf *syllable)
 {
     int rc, flag=0, type;
     char *ending;
@@ -968,19 +969,24 @@ int vst_get_last_syllable (varnam *handle, strbuf *string, strbuf *syllable)
 
     db = handle->internal->db;
 
-    rc = sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
-    if(rc != SQLITE_OK)
+    if(v_->get_last_syllable == NULL)
     {
-        set_last_error(handle, "Failed to prepare : ", sqlite3_errmsg(db));
-        return VARNAM_ERROR;
+        rc = sqlite3_prepare_v2(db, sql, -1, &v_->get_last_syllable, NULL);
+        
+        if(rc != SQLITE_OK)
+        {
+            set_last_error(handle, "Failed to prepare : ", sqlite3_errmsg(db));
+            return VARNAM_ERROR;
+        }
     }
-
+    
+    stmt = v_->get_last_syllable;
     temp = strbuf_init(8);
     strbuf_clear(syllable);
 
     while(!flag)
     {
-        ending = strbuf_get_last_char(string);
+        ending = strbuf_get_last_unicode_char(string);
         if(ending == NULL)
         {
             /*Restoring the string*/
@@ -1035,6 +1041,114 @@ int vst_get_last_syllable (varnam *handle, strbuf *string, strbuf *syllable)
    
     return VARNAM_SUCCESS;
 }
+
+int
+vst_get_stem(varnam* handle, strbuf* old_ending, strbuf *new_ending)
+{
+    sqlite3 *db;
+    sqlite3_stmt *stmt;
+    int rc;
+    const char *sql="select new_ending from stemrules where old_ending = ?1;";
+
+    db = handle->internal->db;
+
+    if(v_->get_stemrule == NULL)
+    {
+        rc = sqlite3_prepare_v2(db, sql, -1, &v_->get_stemrule, NULL);
+        if(rc != SQLITE_OK)
+        {
+            set_last_error(handle, "Failed to prepare statement : %s", sqlite3_errmsg(db));
+            sqlite3_finalize( stmt );
+            return VARNAM_ERROR;
+        }
+    }
+
+    stmt = v_->get_stemrule;
+    sqlite3_bind_text(stmt, 1, strbuf_to_s(old_ending), -1, NULL);
+    rc = sqlite3_step(stmt);
+
+    if(rc == SQLITE_ROW)
+    {
+        strbuf_clear(new_ending);
+        strbuf_add(new_ending, (char*)sqlite3_column_text(stmt, 0));
+        sqlite3_finalize(stmt);
+        return VARNAM_STEMRULE_HIT;
+    }
+    else if(rc == SQLITE_DONE)
+    {
+        sqlite3_finalize(stmt);
+        return VARNAM_STEMRULE_MISS;
+    }
+    else
+    {
+        sqlite3_finalize(stmt);
+        set_last_error(handle, "Sqlite error : %s", sqlite3_errmsg(db));
+        return VARNAM_ERROR;
+    }
+
+}
+
+int
+vst_check_exception(varnam *handle, strbuf *word_buffer, strbuf *end_buffer)
+{
+    sqlite3 *db;
+    sqlite3_stmt *stmt;
+    strbuf *syllable = get_pooled_string(handle);
+    int rc;
+    char *sql = "select exception from stem_exceptions where stem = ?1";
+
+    db = handle->internal->db;
+
+    if(v_->check_exception == NULL)
+    {
+        rc = sqlite3_prepare_v2(db, sql, -1, &v_->check_exception, NULL);
+        if(rc != SQLITE_OK)
+        {
+            set_last_error(handle, "Failed to initialize statement : %s", sqlite3_errmsg(db));
+            sqlite3_finalize( stmt );
+            return VARNAM_ERROR;
+        }
+    }
+    
+    stmt = v_->check_exception;
+    rc = sqlite3_bind_text(stmt, 1, strbuf_to_s(end_buffer), -1, NULL);
+    if(rc != SQLITE_OK)
+    {   
+        set_last_error(handle, "Failed to initialize statement : %s", sqlite3_errmsg(db));
+        sqlite3_finalize( stmt );
+        return VARNAM_ERROR;
+    }
+
+    rc = vst_get_last_syllable(handle, word_buffer, syllable);
+    if(rc != VARNAM_SUCCESS)
+    {
+        set_last_error(handle, "Could not obtain last syllable");
+        return VARNAM_SUCCESS;
+    }
+
+    rc = sqlite3_step(stmt);
+    if(rc == SQLITE_ROW)
+    {
+        if(sqlite3_column_bytes(stmt,0) != 0)
+        {
+            if(strcmp(strbuf_to_s(syllable), (char*)sqlite3_column_blob(stmt, 0)) == 0)
+            {
+                return VARNAM_STEMRULE_HIT;
+            }
+            else
+            {
+                return VARNAM_STEMRULE_MISS;
+            }
+        }
+    }
+    else if(rc == SQLITE_DONE)
+    {
+        return VARNAM_SUCCESS;
+    }
+
+    return VARNAM_ERROR;
+}
+
 
 int
 vst_stamp_version (varnam *handle)

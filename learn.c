@@ -717,107 +717,8 @@ varnam_is_known_word(varnam* handle, const char* word)
         return 0;
 }
 
-static int check_exception(varnam *handle, strbuf *word_buffer, strbuf *end_buffer)
-{
-    sqlite3 *db;
-    sqlite3_stmt *stmt;
-    strbuf *syllable = get_pooled_string(handle);
-    int rc;
-    char *sql = "select exception from stem_exceptions where stem = ?1";
-
-    db = handle->internal->db;
-
-    rc = sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
-    if(rc != SQLITE_OK)
-    {
-        set_last_error(handle, "Failed to initialize statement : %s", sqlite3_errmsg(db));
-        sqlite3_finalize( stmt );
-        return VARNAM_ERROR;
-    }
-
-    rc = sqlite3_bind_text(stmt, 1, strbuf_to_s(end_buffer), -1, NULL);
-    if(rc != SQLITE_OK)
-    {   
-        set_last_error(handle, "Failed to initialize statement : %s", sqlite3_errmsg(db));
-        sqlite3_finalize( stmt );
-        return VARNAM_ERROR;
-    }
-
-    rc = vst_get_last_syllable(handle, word_buffer, syllable);
-    if(rc != VARNAM_SUCCESS)
-    {
-        set_last_error(handle, "Could not obtain last syllable");
-        return VARNAM_SUCCESS;
-    }
-
-    rc = sqlite3_step(stmt);
-    if(rc == SQLITE_ROW)
-    {
-        if(sqlite3_column_bytes(stmt,0) != 0)
-        {
-            if(strcmp(strbuf_to_s(syllable), (char*)sqlite3_column_blob(stmt, 0)) == 0)
-            {
-                return VARNAM_STEMRULE_HIT;
-            }
-            else
-            {
-                return VARNAM_STEMRULE_MISS;
-            }
-        }
-    }
-    else if(rc == SQLITE_DONE)
-    {
-        return VARNAM_SUCCESS;
-    }
-
-    return VARNAM_ERROR;
-}
-
-/*Searches the symbol table to see if the old_ending constitutes a stem rule*/
-static int
-get_stem(varnam* handle, strbuf* old_ending, strbuf *new_ending)
-{
-    sqlite3 *db;
-    sqlite3_stmt *stmt;
-    int rc;
-    const char *sql="select new_ending from stemrules where old_ending = ?1;";
-
-    db = handle->internal->db;
-
-    rc = sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
-    if(rc != SQLITE_OK)
-    {
-        set_last_error(handle, "Failed to prepare statement : %s", sqlite3_errmsg(db));
-        sqlite3_finalize( stmt );
-        return VARNAM_ERROR;
-    }
-
-    sqlite3_bind_text(stmt, 1, strbuf_to_s(old_ending), -1, NULL);
-
-    rc = sqlite3_step(stmt);
-
-    if(rc == SQLITE_ROW)
-    {
-        strbuf_clear(new_ending);
-        strbuf_add(new_ending, (char*)sqlite3_column_text(stmt, 0));
-        sqlite3_finalize(stmt);
-        return VARNAM_STEMRULE_HIT;
-    }
-    else if(rc == SQLITE_DONE)
-    {
-        sqlite3_finalize(stmt);
-        return VARNAM_STEMRULE_MISS;
-    }
-    else
-    {
-        sqlite3_finalize(stmt);
-        set_last_error(handle, "Sqlite error : %s", sqlite3_errmsg(db));
-        return VARNAM_ERROR;
-    }
-
-}
-
-int stem(varnam *handle, const char *word, varray *stem_results)
+int
+stem(varnam *handle, const char *word, varray *stem_results)
 {
     int rc;
     strbuf *word_copy, *suffix, *new_ending, *temp;
@@ -839,15 +740,15 @@ int stem(varnam *handle, const char *word, varray *stem_results)
         strbuf_clear(temp);
         strbuf_add(temp, strbuf_to_s(suffix));
         strbuf_clear(suffix);
-        end_char = strbuf_get_last_char(word_copy);
+        end_char = strbuf_get_last_unicode_char(word_copy);
         strbuf_add(suffix, end_char);
         strbuf_add(suffix, strbuf_to_s(temp));
         strbuf_remove_from_last(word_copy, end_char);
 
-        rc = get_stem(handle, suffix, new_ending);
+        rc = vst_get_stem(handle, suffix, new_ending);
         if(rc == VARNAM_STEMRULE_HIT)
         {
-            rc = check_exception(handle, word_copy, suffix);
+            rc = vst_check_exception(handle, word_copy, suffix);
             if(rc == VARNAM_STEMRULE_HIT)
                 continue;
             else if(rc != VARNAM_STEMRULE_MISS && rc != VARNAM_SUCCESS)

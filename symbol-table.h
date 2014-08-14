@@ -94,6 +94,12 @@ int
 vst_get_last_syllable (varnam *handle, strbuf *string, strbuf *syllable);
 
 int
+vst_check_exception(varnam *handle, strbuf *word_buffer, strbuf *end_buffer);
+
+int
+vst_get_stem(varnam* handle, strbuf* old_ending, strbuf *new_ending);
+
+int
 vst_stamp_version (varnam *handle);
 
 #endif

@@ -105,6 +105,9 @@ initialize_internal()
         vi->delete_word = NULL;
         vi->export_words = NULL;
         vi->learned_words_count = NULL;
+        vi->get_stemrule = NULL;
+        vi->get_last_syllable = NULL;
+        vi->check_exception = NULL;
 
         vi->tokens_cache = NULL;
         vi->noMatchesCache = NULL;

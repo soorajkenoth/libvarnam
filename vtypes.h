@@ -79,7 +79,7 @@
 #define VARNAM_WORDS_EXPORT_METADATA "filetype:varnam_words_export"
 
 /* Schema version number */
-#define VARNAM_SCHEMA_SYMBOLS_VERSION 20140115
+#define VARNAM_SCHEMA_SYMBOLS_VERSION 20140815
 #define VARNAM_SCHEMA_WORDS_VERSION 20140115 
 
 struct varnam_rule;
@@ -160,6 +160,9 @@ struct varnam_internal
     sqlite3_stmt *delete_word;
     sqlite3_stmt *export_words;
     sqlite3_stmt *learned_words_count;
+    sqlite3_stmt *get_stemrule;
+    sqlite3_stmt *get_last_syllable;
+    sqlite3_stmt *check_exception;
 
     /* in-memory caches */
     vcache_entry *tokens_cache;

@@ -480,10 +480,10 @@ VARNAM_EXPORT extern int varnam_is_known_word(
         const char *word);
 
 /*Creates a stemrule in the varnam symbol table*/
-int 
+VARNAM_EXPORT extern int 
 varnam_create_stemrule(varnam* handle, const char* old_ending, const char* new_ending);
 
-int
+VARNAM_EXPORT extern int
 varnam_create_stem_exception(varnam *handle, const char *rule, const char *exception);
 
 VARNAM_EXPORT extern void

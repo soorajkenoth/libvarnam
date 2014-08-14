@@ -202,9 +202,10 @@ strbuf_chars(strbuf *b)
 }
 
 /* Returns the last unicode character of the word
-+*/
+   Returned result should be destroyed
+*/
 const char*
-strbuf_get_last_char(strbuf *word)
+strbuf_get_last_unicode_char(strbuf *word)
 {
     varray *characters=NULL;
     characters = strbuf_chars(word);
@@ -220,6 +221,8 @@ strbuf_get_last_char(strbuf *word)
         char *ending = (char*)malloc(strlen((char*)characters->memory[characters->index]) * sizeof(char) + 1);
         strcpy(ending, (char*)characters->memory[characters->index]);
         varray_free(characters, *free);
+
+        /*ending should be freed in the calling function*/
         return ending;
     }
 
