@@ -90,6 +90,9 @@ destroy_all_statements(struct varnam_internal* vi);
 int
 vst_make_prefix_tree (varnam *handle);
 
+int
+vst_has_stemrules (varnam *handle);
+
 int 
 vst_get_last_syllable (varnam *handle, strbuf *string, strbuf *syllable);
 

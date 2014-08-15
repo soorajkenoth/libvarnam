@@ -12,6 +12,9 @@
 #include "../symbol-table.h"
 #include "../vword.h"
 
+extern int
+stem(varnam *handle, const char *word, struct varray_t *stem_results);
+
 void
 setup_test_data()
 {
@@ -88,13 +91,15 @@ START_TEST (insert_stemrule)
 
 	db = varnam_instance->internal->db;
 
+	rc = vst_has_stemrules(varnam_instance);
+	ck_assert_int_eq(rc, VARNAM_STEMRULE_MISS);
+	
 	rc = sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
 	if(rc != SQLITE_OK)
 		ck_abort_msg("Sqlite error : %s", sqlite3_errmsg(db));
 	
 	rc = varnam_create_stemrule(varnam_instance, empty_word, "ല");
 	assert_error(rc);
-
 	rc = varnam_create_stemrule(varnam_instance, "ക", "ല");
 	assert_success(rc);
 
@@ -121,6 +126,11 @@ START_TEST (insert_stemrule)
 	else if(rc != SQLITE_DONE)
 		ck_abort_msg("Sqlite error : %s", sqlite3_errmsg(db));	
 
+	/*resetting stemrule count so that vst_has_stemrule will recalculate it*/
+	varnam_instance->internal->stemrules_count = -1;
+	rc = vst_has_stemrules(varnam_instance);
+	ck_assert_int_eq(rc, VARNAM_STEMRULE_HIT);
+
 	sqlite3_finalize(stmt);
 }
 END_TEST
@@ -138,11 +148,13 @@ START_TEST(stemming)
 	rc = varnam_create_stemrule(varnam_instance, "ണെന്ന്", "ണ്");
 	assert_success(rc);
 
-	stem(varnam_instance, "കാര്യമാണ്", stem_results);
+	rc = stem(varnam_instance, "കാര്യമാണ്", stem_results);
+	assert_success(rc);
 	ck_assert_str_eq(((vword*)stem_results->memory[stem_results->index])->text, "കാര്യം");
 	varray_clear(stem_results);
 	
-	stem(varnam_instance, "അവശതയാണ്", stem_results);
+	rc = stem(varnam_instance, "അവശതയാണ്", stem_results);
+	assert_success(rc);
 	ck_assert_str_eq(((vword*)stem_results->memory[stem_results->index])->text, "അവശത");
 	varray_clear(stem_results);
 

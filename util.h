@@ -174,7 +174,6 @@ VARNAM_EXPORT void return_string_to_pool (varnam *handle, strbuf* string);
 VARNAM_EXPORT void *xmalloc(size_t size);
 VARNAM_EXPORT void xfree (void *ptr);
 
-int stem(varnam *handle, const char *word, struct varray_t *stem_results);
 void set_last_error(varnam *handle, const char *format, ...);
 bool is_utf8(const char *string);
 const char *ZWNJ();

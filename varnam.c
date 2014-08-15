@@ -73,6 +73,8 @@ initialize_internal()
         vi->config_use_indic_digits = 0;
         vi->_config_mostly_learning_new_words = 0;
 
+        vi->stemrules_count = -1;
+
         /* suggestions */
         vi->known_words = NULL;
 
@@ -114,6 +116,7 @@ initialize_internal()
         vi->tokens_cache = NULL;
         vi->noMatchesCache = NULL;
         vi->tokenizationPossibility = NULL;
+        vi->cached_stems = NULL;
     }
     return vi;
 }

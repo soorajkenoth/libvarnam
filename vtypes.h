@@ -129,6 +129,8 @@ struct varnam_internal
     /* internal configuration options */
     int _config_mostly_learning_new_words;
 
+    int stemrules_count;
+
 
     /* instance pools */
     struct vpool_t *tokens_pool;
@@ -170,6 +172,7 @@ struct varnam_internal
     vcache_entry *tokens_cache;
     vcache_entry *noMatchesCache; /* Contains all the patterns which don't have a match */
     vcache_entry *tokenizationPossibility; /* Contains patterns and a value indicating whether further tokenization is possible */
+    vcache_entry *cached_stems; 
 };
 
 typedef struct varnam {

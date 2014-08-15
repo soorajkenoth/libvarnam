@@ -508,20 +508,21 @@ varnam_learn_from_file(varnam *handle,
 
             word = varray_get (word_parts, 0);
             rc = varnam_learn_internal (handle, strbuf_to_s (word), confidence);
-
-
-    		stem_results= get_pooled_array(handle);
-    		rc = stem(handle, strbuf_to_s(word), stem_results);
-    		if(rc != VARNAM_SUCCESS)
-        		return rc;
-    
-    		for(i=0;i<=stem_results->index;i++)
-    		{
-        		varnam_learn_internal(handle, ((vword*)varray_get(stem_results, i))->text, 0);
-    		}
             
             if (rc) {
                 if (status != NULL) status->failed++;
+            }
+
+            /*hack. if rc is used here then varnam won't create text file upon failure. To fix*/
+            int rc2;            
+            stem_results = get_pooled_array(handle);
+            rc2 = stem(handle, strbuf_to_s(word), stem_results);
+            if(rc2 != VARNAM_SUCCESS)
+                return rc;
+            
+            for(i=0;i<=stem_results->index;i++)
+            {
+                varnam_learn_internal(handle, ((vword*)varray_get(stem_results, i))->text, 0);
             }
         }
         else {
@@ -724,6 +725,13 @@ stem(varnam *handle, const char *word, varray *stem_results)
     strbuf *word_copy, *suffix, *new_ending, *temp;
     char *end_char;
 
+    rc = vst_has_stemrules(handle);
+    if(rc == VARNAM_STEMRULE_MISS)
+        return VARNAM_SUCCESS;
+
+    else if(rc == VARNAM_ERROR)
+        return VARNAM_ERROR;
+    
     word_copy = get_pooled_string(handle);
     suffix = get_pooled_string(handle);
     temp = get_pooled_string(handle);
