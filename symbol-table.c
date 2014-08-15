@@ -333,15 +333,18 @@ int vst_persist_stemrule(varnam *handle, const char* old_ending, const char* new
 
     db = handle->internal->db;
 
-    rc = sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
-
-    if(rc != SQLITE_OK)
+    if(v_->persist_stemrule = NULL)
     {
-        set_last_error(handle, "Failed to prepare statement : %s", sqlite3_errmsg(db));
-        sqlite3_finalize( stmt );
-        return VARNAM_ERROR;
+        rc = sqlite3_prepare_v2(db, sql, -1, &v_->persist_stemrule, NULL);
+        if(rc != SQLITE_OK)
+        {
+            set_last_error(handle, "Failed to prepare statement : %s", sqlite3_errmsg(db));
+            sqlite3_finalize( stmt );
+            return VARNAM_ERROR;
+        }
     }
 
+    stmt = v_->persist_stemrule;
     rc = sqlite3_bind_text(stmt, 1, old_ending, -1, NULL);
     if(rc != SQLITE_OK)
     {
@@ -378,14 +381,19 @@ int vst_persist_stem_exception(varnam *handle, const char *rule, const char *exc
 
     db = handle->internal->db;
 
-    rc = sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
-    if(rc != SQLITE_OK)
+    if(v_->persist_stem_exception = NULL)
     {
-        set_last_error(handle, "Failed to initialize statement : %s", sqlite3_errmsg(db));
-        sqlite3_finalize( stmt );
-        return VARNAM_ERROR;
+        rc = sqlite3_prepare_v2(db, sql, -1, &v_->persist_stem_exception, NULL);
+        
+        if(rc != SQLITE_OK)
+        {
+            set_last_error(handle, "Failed to initialize statement : %s", sqlite3_errmsg(db));
+            sqlite3_finalize( stmt );
+            return VARNAM_ERROR;
+        }
     }
-
+    
+    stmt = v_->persist_stem_exception;
     sqlite3_bind_text(stmt, 1, rule, -1, NULL);
     sqlite3_bind_text(stmt, 2, exception, -1, NULL);
 

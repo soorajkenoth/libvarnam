@@ -108,6 +108,8 @@ initialize_internal()
         vi->get_stemrule = NULL;
         vi->get_last_syllable = NULL;
         vi->check_exception = NULL;
+        vi->persist_stemrule = NULL;
+        vi->persist_stem_exception = NULL;
 
         vi->tokens_cache = NULL;
         vi->noMatchesCache = NULL;

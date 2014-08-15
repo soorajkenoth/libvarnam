@@ -163,6 +163,8 @@ struct varnam_internal
     sqlite3_stmt *get_stemrule;
     sqlite3_stmt *get_last_syllable;
     sqlite3_stmt *check_exception;
+    sqlite3_stmt *persist_stemrule;
+    sqlite3_stmt *persist_stem_exception;
 
     /* in-memory caches */
     vcache_entry *tokens_cache;
