@@ -1101,28 +1101,22 @@ vst_get_stem(varnam* handle, strbuf* old_ending, strbuf *new_ending)
 {
     sqlite3 *db;
     sqlite3_stmt *stmt;
-    char *cachedEntry=NULL;
+    strbuf *cachedEntry=NULL;
+    strbuf *cacheKey=NULL;
     int rc;
     const char *sql="select new_ending from stemrules where old_ending = ?1;";
 
     db = handle->internal->db;
 
-    cachedEntry = lru_find_in_cache(&v_->cached_stems, strbuf_to_s(old_ending));
+    cacheKey = get_pooled_string (handle);
+    strbuf_addf (cacheKey, "%s", strbuf_to_s (old_ending));
+    cachedEntry = lru_find_in_cache(&v_->cached_stems, strbuf_to_s(cacheKey));
     if(cachedEntry != NULL)
     {
         strbuf_clear(new_ending);
-        strbuf_add(new_ending, cachedEntry);
+        strbuf_add(new_ending, strbuf_to_s(cachedEntry));
         return VARNAM_STEMRULE_HIT;
     }
-    else if(lru_key_exists(&v_->cached_stems, strbuf_to_s(old_ending)))
-    {
-        /*lru_find_in_cache can return null if value of the key is NULL.
-          This happens with stem rules that simply removes the suffix
-          So we check if key exists.*/
-        strbuf_clear(new_ending);
-        return VARNAM_STEMRULE_HIT;
-    }
-
 
     if(v_->get_stemrule == NULL)
     {
@@ -1145,7 +1139,13 @@ vst_get_stem(varnam* handle, strbuf* old_ending, strbuf *new_ending)
         strbuf_add(new_ending, (char*)sqlite3_column_text(stmt, 0));
         sqlite3_reset(stmt);
 
-        lru_add_to_cache(&v_->cached_stems, strbuf_to_s(old_ending), strbuf_to_s(new_ending), NULL);
+        /*Will be freed by the callback in lru_add_cache*/
+        /*can't use get_pooled_string() here. Unpredictable results*/
+        /*possible leak if lru_add_cache never callbacks*/
+        strbuf *val_buf = strbuf_init(8);
+        strbuf_add(val_buf, strbuf_to_s(new_ending));
+
+        lru_add_to_cache(&v_->cached_stems, strbuf_to_s(old_ending), val_buf, strbuf_destroy);
         return VARNAM_STEMRULE_HIT;
     }
     else if(rc == SQLITE_DONE)
