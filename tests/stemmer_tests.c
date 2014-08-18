@@ -109,7 +109,7 @@ START_TEST (insert_stemrule)
 
 	rc = sqlite3_step(stmt);
 	if(rc == SQLITE_ROW)
-		ck_assert_str_eq((char*)sqlite3_column_text(stmt, 0), "ല");
+		ck_assert_str_eq((const char*)sqlite3_column_text(stmt, 0), "ല");
 	else if(rc != SQLITE_DONE)
 		ck_abort_msg("Sqlite error : %s", sqlite3_errmsg(db));
 
@@ -122,7 +122,7 @@ START_TEST (insert_stemrule)
 	rc = sqlite3_step(stmt);
 
 	if(rc == SQLITE_ROW)
-		ck_assert_str_eq((char*)sqlite3_column_text(stmt, 0), "ൾ");
+		ck_assert_str_eq((const char*)sqlite3_column_text(stmt, 0), "ൾ");
 	else if(rc != SQLITE_DONE)
 		ck_abort_msg("Sqlite error : %s", sqlite3_errmsg(db));	
 

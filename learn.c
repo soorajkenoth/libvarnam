@@ -412,7 +412,7 @@ varnam_learn(varnam *handle, const char *word)
     }
 
 
-    stem_results= get_pooled_array(handle);
+    stem_results = varray_init();
     rc = stem(handle, word, stem_results);
     if(rc != VARNAM_SUCCESS)
         return rc;
@@ -421,6 +421,8 @@ varnam_learn(varnam *handle, const char *word)
     {
         varnam_learn_internal(handle, ((vword*)varray_get(stem_results, i))->text, 0);
     }
+
+    varray_free(stem_results, &destroy_word);
 
     rc = vwt_end_changes (handle);
     if (rc != VARNAM_SUCCESS)
@@ -452,6 +454,7 @@ varnam_learn_from_file(varnam *handle,
                        void *object)
 {
     int rc;
+    int rc2;            
     FILE *infile;
     char line_buffer[10000];
     strbuf *word;
@@ -514,8 +517,8 @@ varnam_learn_from_file(varnam *handle,
             }
 
             /*hack. if rc is used here then varnam won't create text file upon failure. To fix*/
-            int rc2;            
-            stem_results = get_pooled_array(handle);
+            
+            stem_results = varray_init();
             rc2 = stem(handle, strbuf_to_s(word), stem_results);
             if(rc2 != VARNAM_SUCCESS)
                 return rc;
@@ -524,6 +527,8 @@ varnam_learn_from_file(varnam *handle,
             {
                 varnam_learn_internal(handle, ((vword*)varray_get(stem_results, i))->text, 0);
             }
+
+            varray_free(stem_results, &destroy_word);
         }
         else {
             rc = VARNAM_ERROR;
@@ -758,7 +763,11 @@ stem(varnam *handle, const char *word, varray *stem_results)
         {
             rc = vst_check_exception(handle, word_copy, suffix);
             if(rc == VARNAM_STEMRULE_HIT)
+            {
+            	free(end_char);
                 continue;
+            }
+
             else if(rc != VARNAM_STEMRULE_MISS && rc != VARNAM_SUCCESS)
                 return VARNAM_ERROR;
 

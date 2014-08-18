@@ -992,7 +992,7 @@ vst_has_stemrules (varnam *handle)
         if(rc == SQLITE_ROW)
         {
             v_->stemrules_count = sqlite3_column_int(stmt, 0);
-            
+            sqlite3_finalize(stmt);
             if(v_->stemrules_count > 0)
                 return VARNAM_STEMRULE_HIT;
             else
@@ -1000,6 +1000,7 @@ vst_has_stemrules (varnam *handle)
         }
         else if(rc != SQLITE_DONE)
         {
+            sqlite3_finalize(stmt);
             set_last_error(handle,"Error : ", sqlite3_errmsg(db));
             return VARNAM_ERROR;
         }
@@ -1035,7 +1036,7 @@ vst_get_last_syllable (varnam *handle, strbuf *string, strbuf *syllable)
     }
     
     stmt = v_->get_last_syllable;
-    temp = strbuf_init(8);
+    temp = get_pooled_string(handle);
     strbuf_clear(syllable);
 
     while(!flag)
@@ -1103,6 +1104,7 @@ vst_get_stem(varnam* handle, strbuf* old_ending, strbuf *new_ending)
     sqlite3_stmt *stmt;
     strbuf *cachedEntry=NULL;
     strbuf *cacheKey=NULL;
+    strbuf *val_buf=NULL;
     int rc;
     const char *sql="select new_ending from stemrules where old_ending = ?1;";
 
@@ -1142,7 +1144,7 @@ vst_get_stem(varnam* handle, strbuf* old_ending, strbuf *new_ending)
         /*Will be freed by the callback in lru_add_cache*/
         /*can't use get_pooled_string() here. Unpredictable results*/
         /*possible leak if lru_add_cache never callbacks*/
-        strbuf *val_buf = strbuf_init(8);
+        val_buf = strbuf_init(8);
         strbuf_add(val_buf, strbuf_to_s(new_ending));
 
         lru_add_to_cache(&v_->cached_stems, strbuf_to_s(old_ending), val_buf, strbuf_destroy);
@@ -1277,6 +1279,7 @@ destroy_all_statements(struct varnam_internal* v)
     sqlite3_finalize (v->export_words);
     sqlite3_finalize (v->learned_words_count);
     sqlite3_finalize (v->check_exception);
+    sqlite3_finalize (v->get_last_syllable);
     sqlite3_finalize (v->get_stemrule);
     sqlite3_finalize (v->persist_stemrule);
     sqlite3_finalize (v->persist_stem_exception);

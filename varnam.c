@@ -878,5 +878,6 @@ destroy_varnam_internal(struct varnam_internal* vi)
     clear_cache (&vi->tokens_cache);
     clear_cache (&vi->noMatchesCache);
     clear_cache (&vi->tokenizationPossibility);
+    clear_cache (&vi->cached_stems);
     xfree(vi);
 }
