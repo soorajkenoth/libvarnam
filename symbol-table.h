@@ -44,6 +44,8 @@ vst_persist_token(
 int
 vst_persist_stemrule(varnam *handle, const char* old_ending, const char* new_ending);
 
+int 
+vst_persist_stem_exception(varnam *handle, const char *rule, const char *exception);
 
 /**
  * Flushes changes to disk

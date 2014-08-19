@@ -324,8 +324,7 @@ vst_persist_token(
     return VARNAM_SUCCESS;
 }
 
-int
-vst_persist_stemrule(varnam *handle, const char* old_ending, const char* new_ending)
+int vst_persist_stemrule(varnam *handle, const char* old_ending, const char* new_ending)
 {
     sqlite3 *db;
     sqlite3_stmt *stmt;
@@ -375,8 +374,7 @@ vst_persist_stemrule(varnam *handle, const char* old_ending, const char* new_end
     return VARNAM_SUCCESS;
 }
 
-int 
-vst_persist_stem_exception(varnam *handle, const char *rule, const char *exception)
+int vst_persist_stem_exception(varnam *handle, const char *rule, const char *exception)
 {
     sqlite3 *db;
     sqlite3_stmt *stmt;
@@ -1104,9 +1102,12 @@ vst_get_stem(varnam* handle, strbuf* old_ending, strbuf *new_ending)
 {
     sqlite3 *db;
     sqlite3_stmt *stmt;
+<<<<<<< HEAD
+=======
+    strbuf *val_buf;
+>>>>>>> Code review, August 15
     strbuf *cachedEntry=NULL;
     strbuf *cacheKey=NULL;
-    strbuf *val_buf=NULL;
     int rc;
     const char *sql="select new_ending from stemrules where old_ending = ?1;";
 
@@ -1142,13 +1143,21 @@ vst_get_stem(varnam* handle, strbuf* old_ending, strbuf *new_ending)
         strbuf_clear(new_ending);
         strbuf_add(new_ending, (char*)sqlite3_column_text(stmt, 0));
         sqlite3_reset(stmt);
-
+        val_buf = strbuf_init(8);
         /*Will be freed by the callback in lru_add_cache*/
         /*can't use get_pooled_string() here. Unpredictable results*/
         /*possible leak if lru_add_cache never callbacks*/
-        val_buf = strbuf_init(8);
         strbuf_add(val_buf, strbuf_to_s(new_ending));
 
+<<<<<<< HEAD
+        /*Will be freed by the callback in lru_add_cache*/
+        /*can't use get_pooled_string() here. Unpredictable results*/
+        /*possible leak if lru_add_cache never callbacks*/
+        strbuf *val_buf = strbuf_init(8);
+        strbuf_add(val_buf, strbuf_to_s(new_ending));
+
+=======
+>>>>>>> Code review, August 15
         lru_add_to_cache(&v_->cached_stems, strbuf_to_s(old_ending), val_buf, strbuf_destroy);
         return VARNAM_STEMRULE_HIT;
     }
@@ -1281,7 +1290,6 @@ destroy_all_statements(struct varnam_internal* v)
     sqlite3_finalize (v->export_words);
     sqlite3_finalize (v->learned_words_count);
     sqlite3_finalize (v->check_exception);
-    sqlite3_finalize (v->get_last_syllable);
     sqlite3_finalize (v->get_stemrule);
     sqlite3_finalize (v->persist_stemrule);
     sqlite3_finalize (v->persist_stem_exception);
