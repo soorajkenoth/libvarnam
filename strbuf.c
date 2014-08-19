@@ -210,28 +210,25 @@ strbuf_chars(strbuf *b)
 /* Returns the last unicode character of the word
    Returned result should be destroyed
 */
+   /* Returns the last unicode character of the word
+   Returned result should be destroyed
+*/
 const char*
 strbuf_get_last_unicode_char(strbuf *word)
 {
-    varray *characters=NULL;
+    varray *characters = NULL;
+    const char *lastUnicodeChar = NULL;
     characters = strbuf_chars(word);
-    if(characters == NULL)
-        return NULL;
-    else if(characters->index < 0)
-    {
-        varray_free(characters, NULL);
+
+    if (varray_is_empty (characters)) {
+        varray_free (characters, NULL);
         return NULL;
     }
-    else
-    {
-        char *ending = (char*)malloc(strlen((char*)characters->memory[characters->index]) * sizeof(char) + 1);
-        strcpy(ending, (char*)characters->memory[characters->index]);
-        varray_free(characters, *free);
 
-        /*ending should be freed in the calling function*/
-        return ending;
-    }
-
+    lastUnicodeChar = strdup ((const char*) varray_get(characters, varray_length(characters) - 1));
+    varray_free(characters, &free);
+    /*ending should be freed in the calling function*/
+    return lastUnicodeChar;
 }
 
 void strbuf_destroy(void *s)

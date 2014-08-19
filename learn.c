@@ -777,7 +777,7 @@ stem(varnam *handle, const char *word, varray *stem_results)
              So pushing a pointer to word_buffer->buffer to varray is of
              no use. So we create a vword for each word that is to be learned
              and push it to the varray*/
-            varray_push(stem_results, Word(handle, (char*)strbuf_to_s(word_copy), 0));
+            varray_push(stem_results, Word(handle, (const char*)strbuf_to_s(word_copy), 0));
             strbuf_clear(suffix);
         }
         else if(rc != VARNAM_STEMRULE_MISS)

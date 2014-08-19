@@ -975,7 +975,7 @@ vst_has_stemrules (varnam *handle)
     int rc;
     sqlite3 *db;
     sqlite3_stmt *stmt;
-    const char *sql = "select count(*) from stemrules;";
+    char *sql = "select count(*) from stemrules;";
     
     db = handle->internal->db;
 
