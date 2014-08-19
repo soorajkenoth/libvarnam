@@ -975,43 +975,32 @@ vst_has_stemrules (varnam *handle)
     int rc;
     sqlite3 *db;
     sqlite3_stmt *stmt;
-    char *sql = "select count(*) from stemrules;";
+    const char *sql = "select count(*) from stemrules;";
     
     db = handle->internal->db;
 
     if(v_->stemrules_count == -1)
     {
         rc = sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
-
-        if(rc != SQLITE_OK)
-        {
+        if(rc != SQLITE_OK) {
             set_last_error(handle, "Failed to prepare :", sqlite3_errmsg(db));
             return VARNAM_ERROR;
         }
 
         rc = sqlite3_step(stmt);
 
-        if(rc == SQLITE_ROW)
-        {
+        if(rc == SQLITE_ROW) {
             v_->stemrules_count = sqlite3_column_int(stmt, 0);
-            sqlite3_finalize(stmt);
-            if(v_->stemrules_count > 0)
-                return VARNAM_STEMRULE_HIT;
-            else
-                return VARNAM_STEMRULE_MISS;
         }
-        else if(rc != SQLITE_DONE)
-        {
+        else {
             sqlite3_finalize(stmt);
             set_last_error(handle,"Error : ", sqlite3_errmsg(db));
             return VARNAM_ERROR;
         }
+        sqlite3_finalize(stmt);
     }
-    else if(v_->stemrules_count > 0)
-        return VARNAM_STEMRULE_HIT;
 
-    else
-        return VARNAM_STEMRULE_MISS;
+    return v_->stemrules_count > 0 ? VARNAM_STEMRULE_HIT : VARNAM_STEMRULE_MISS;
 }
 
 int
