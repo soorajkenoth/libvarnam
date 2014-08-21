@@ -213,7 +213,7 @@ strbuf_chars(strbuf *b)
    /* Returns the last unicode character of the word
    Returned result should be destroyed
 */
-const char*
+char*
 strbuf_get_last_unicode_char(strbuf *word)
 {
     varray *characters = NULL;
@@ -225,7 +225,7 @@ strbuf_get_last_unicode_char(strbuf *word)
         return NULL;
     }
 
-    lastUnicodeChar = strdup ((const char*) varray_get(characters, varray_length(characters) - 1));
+    lastUnicodeChar = strdup ((char*) varray_get(characters, varray_length(characters) - 1));
     varray_free(characters, &free);
     /*ending should be freed in the calling function*/
     return lastUnicodeChar;
