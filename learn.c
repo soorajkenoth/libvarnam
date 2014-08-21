@@ -415,6 +415,9 @@ varnam_learn_internal(varnam *handle, const char *word, int confidence)
     varray *tokens;
     strbuf *sanitized_word;
 
+    if(strlen(word) == 0)
+        return VARNAM_ARGS_ERROR;
+
     if (handle == NULL || word == NULL)
         return VARNAM_ARGS_ERROR;
 
