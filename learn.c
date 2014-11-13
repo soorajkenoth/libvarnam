@@ -42,11 +42,12 @@ language_specific_sanitization(strbuf *string)
     
     /*ml-inscript specific code. Add checks for
     lang code here*/
-    strbuf_replace(string, "ൻ", "ന്‍]");
-    strbuf_replace(string, "ൺ", "ണ്‍]");
-    strbuf_replace(string, "ൽ", "ല്‍]");
-    strbuf_replace(string, "ൾ", "ള്‍]");
-    strbuf_replace(string, "ർ", "ര്‍]");
+    
+    strbuf_replace(string, "ൻ", "ന്‍");
+    strbuf_replace(string, "ൺ", "ണ്‍");
+    strbuf_replace(string, "ൽ", "ല്‍");
+    strbuf_replace(string, "ൾ", "ള്‍");
+    strbuf_replace(string, "ർ", "ര്‍");
     /* Hindi's DANDA (Purna viram) */
     strbuf_replace (string, "।", "");
 }
@@ -91,7 +92,7 @@ sanitize_word (varnam *handle, const char *word)
     strbuf_remove_from_first (string, ZWNJ());
     strbuf_remove_from_last (string, ZWNJ());
     strbuf_remove_from_first (string, ZWJ());
-
+    
     return string;
 }
 
