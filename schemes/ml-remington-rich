@@ -1,0 +1,181 @@
+# ml-remington-rich.mim -- Malayalam input method for Remington typewriter layout
+# Copyright (c) 2014 Sooraj Kenoth, Free Software Consultant, Zyxware Technologies
+
+# This file is part of the m17n contrib; a sub-part of the m17n
+# library.
+
+# The library is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public License
+# as published by the Free Software Foundation; either version 2.1 of
+# the License, or (at your option) any later version.
+
+# The library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+
+# You should have received a copy of the GNU General Public
+# License along with the library; if not, write to the Free
+# Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
+# 02111-1307, USA.
+#
+# Author: Sooraj Kenoth - mail@shakhi.org
+# Icon: Sooraj Kenoth - mail@puzhu.in
+# Story: Mr. Sebin Abraham Jacob <sebinajacob@gmail.com> created
+# a mim file for remington to enable Remington in I-BUS. I took
+# it as a referece to start. BUt this is completly re-writtern one.
+
+
+language_code "ml-remington"
+identifier "ml-remington-rich"
+display_name "Malayalam Remington-rich"
+author "Sooraj Kenoth"
+
+infer_dead_consonants false
+
+$zwnj = "\u{200c}"
+$zwj = "\u{200d}"
+
+vowels "L" => "അ",
+	"@" => "ആ",
+	"Ll" => "ആ",
+	"T" => "ഇ",
+	"#" => "ഈ",
+	"TJ" => "ഈ",
+	"Tl" => "ഈ",
+	"To" => "ഈ",
+	"K" => "ഉ",
+	"$" => "ഊ",
+	"Ko" => "ഊ",
+	"Kl" => "ഊ",
+	"W" => "ഋ",
+	"t" => "എ",
+	"%" => "ഏ",
+	"tS" => "ഏ",
+	"tl" => "ഏ",
+	"^" => "ഐ",
+	"st" => "ഐ",
+	"Q" => "ഒ",
+	"&" => "ഓ",
+	"Q)" => "ഓ",
+	"Ql" => "ഓ",
+	"*" => "ഔ",
+	"Qo" => "ഔ",
+
+#സ്വരചിഹ്നം
+	"l" => "ാ",
+	"j" => "ി",
+	"J" => "ീ",
+	"k" => "ു",
+	"o" => "ൂ",
+	"{" => "ൃ",
+	"s" => "െ",
+	"S" => "േ",
+	"=" => "ൈ",
+	"(" => "ൊ",
+	")" => "ോ",
+	"+" => "ൗ",
+	"+" => "ൌ",
+	"O" => "ൗ",
+	"\\" => "്",
+	"`" => "്",
+	"~" => "ം",
+	"-" ഃ"
+
+consonants "Y" => "്ര",
+	"U" => "്യ",
+	"I" => "്വ",
+
+#വ്യഞ്ജനാക്ഷരങ്ങള്
+	"d" => "ക",
+	"D" => "ഖ",
+	"z" => "ഗ",
+	"Z" => "ഘ",
+	"b" => "ങ",
+	"v" => "ച",
+	"V" => "ഛ",
+	"w" => "ജ",
+	"Vv" => "ഝ",
+	"B" => "ഞ",
+	"m" => "ട",
+	"_" => "ഠ",
+	"A" => "ഠ",
+	"/" => "ഡ",
+	"?" => "ഢ",
+	"n" => "ണ",
+	"f" => "ത",
+	"F" => "ഥ",
+	"p" => "ദ",
+	"P" => "ധ",
+	"r" => "ന",
+	"e" => "പ",
+	"E" => "ഫ",
+	">" => "ബ",
+	"." => "ഭ",
+	"a" => "മ",
+	"u" => "യ",
+	"g" => "ര",
+	"h" => "ല",
+	"i" => "വ",
+	"C" => "ശ",
+	"," => "ഷ",
+	"c" => "സ",
+	"<" => "ഹ",
+	"x" => "ള",
+	"q" => "ഴ",
+	"y" => "റ",
+
+#ചില്ല്
+	"X" => "ള്$zwnj",
+	"R" => "ന്$zwnj",
+	"G" => "ര്$zwnj",
+	"H" => "ല്$zwnj",
+	"N" => "ണ്$zwnj",
+
+#കൂട്ടക്ഷരം ഇരട്ടിപ്പ്
+
+	"d\" => "ക്ക",
+	"]" => "ക്ക",
+	"z\" => "ഗ്ഗ",
+	"b\" => "ങ്ങ",
+	"v\" => "ച്ച",
+	"w\" => "ജ്ജ",
+	"'c'" => "ഝ",
+	"B\" => "ഞ്ഞ",
+	"m\" => "ട്ട",
+	"}" => "ട്ട",
+	"n\" => "ണ്ണ",
+	"f\" => "ത്ത",
+	"p\" => "ദ്ദ",
+	"r\" => "ന്ന",
+	"e\" => "പ്പ",
+	">\" => "ബ്ബ",
+	"a\" => "മ്മ",
+	"u\" => "യ്യ",
+	"h\" => "ല്ല",
+	"i\" => "വ്വ",
+	"C\" => "ശ്ശ",
+	",\" => "ക്ഷ",
+	"c\" => "സ്സ",
+	"x\" => "ള്ള"
+
+word_breakers
+  ":" => ";",
+  ";" => ".",
+  "[" => ","
+
+others
+  "\" => $zwj,
+  "|" => $zwnj
+
+numbers
+  "=0" => "൦",
+  "=1" => "൧",
+  "=2" => "൨",
+  "=3" => "൩",
+  "=4" => "൪",
+  "=5" => "൫",
+  "=6" => "൬",
+  "=7" => "൭",
+  "=8" => "൮",
+  "=9" => "൯"
